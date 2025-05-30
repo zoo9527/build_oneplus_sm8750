@@ -4,6 +4,7 @@ info() {
   echo "[INFO] $1"
   tput sgr0
 }
+BUILD_DIR="$HOME/build_oneplus_sm8750"
 while true; do
   info "请选择需要编译的机型："
   info "1) oneplus_ace5_pro"
@@ -127,10 +128,10 @@ sed -i "s/DKSU_VERSION=12800/DKSU_VERSION=${KSU_VERSION}/" kernel/Makefile
 
 #写入SUSFS补丁
 info "开始修补SUSFS补丁"
-cd $HOME/build_oneplus_sm8750/build_kernel
+cd $BUILD_DIR/build_kernel
 git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android15-6.6
 git clone https://github.com/ShirkNeko/SukiSU_patch.git
-cd $HOME/build_oneplus_sm8750/build_kernel/kernel_platform
+cd $BUILD_DIR/build_kernel/kernel_platform
 cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-android15-6.6.patch ./common/
 cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/
 cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
@@ -159,7 +160,7 @@ info "SUSFS补丁修补完成"
 
 if [ "${KERNEL_LZ4}" = "1" ]; then
     info "开始修补LZ4补丁"
-    cd $HOME/build_oneplus_sm8750/build_kernel/kernel_platform/common
+    cd $BUILD_DIR/build_kernel/kernel_platform/common
     
     # 复制补丁文件
     cp ../../SukiSU_patch/other/zram/zram_patch/6.6/lz4kd.patch ./
@@ -175,7 +176,7 @@ fi
 #!/bin/bash
 
 # 进入内核源码的 drivers 目录
-cd $HOME/build_oneplus_sm8750/build_kernel//kernel_platform/common/drivers
+cd $BUILD_DIR/build_kernel//kernel_platform/common/drivers
 
 # 创建 hmbird_patch.c 文件
 cat << 'EOF' > hmbird_patch.c
@@ -258,7 +259,7 @@ if ! grep -q "hmbird_patch.o" Makefile; then
 fi
 
 # 返回上一层目录
-cd $HOME/build_oneplus_sm8750/build_kernel
+cd $BUILD_DIR/build_kernel
 
 # 提交更改
 git add -A
@@ -266,7 +267,7 @@ git commit -m "Add HMBird GKI patch" || true
 
 
 # 进入工作目录
-cd $HOME/build_oneplus_sm8750/build_kernel/kernel_platform
+cd $BUILD_DIR/build_kernel/kernel_platform
 
 # 配置项数组
 CONFIGS=(
@@ -311,7 +312,7 @@ git add -A && git commit -a -m "BUILD Kernel"
 if [ "$KERNEL_KPM" = "1" ]; then
   # 进入工作目录
   info "开始配置KPM"
-  cd $HOME/build_oneplus_sm8750/build_kernel/kernel_platform
+  cd $BUILD_DIR/build_kernel/kernel_platform
   
   # 添加 KPM 配置项
   echo "CONFIG_KPM=y" >> ./common/arch/arm64/configs/gki_defconfig
@@ -328,7 +329,7 @@ else
 fi
 
 # 修改内核名称
-cd $HOME/build_oneplus_sm8750/build_kernel/kernel_platform/ || exit
+cd $BUILD_DIR/build_kernel/kernel_platform/ || exit
 
 # 删除 setlocalversion 中的 ${scm_version} 字符串
 sed -i 's/${scm_version}//' ./common/scripts/setlocalversion
@@ -343,7 +344,7 @@ sudo sed -i "s/-4k/${KERNEL_NAME}/g" ./common/arch/arm64/configs/gki_defconfig
 if [ "$KERNEL_SCX" == "1" ]; then
     info "开启风驰内核"
     # 进入目标目录
-    cd $HOME/build_oneplus_sm8750/build_kernel/kernel_platform/ || exit
+    cd $BUILD_DIR/build_kernel/kernel_platform/ || exit
 
     # 克隆 sched_ext 仓库
     git clone https://github.com/showdo/sched_ext.git
@@ -371,7 +372,7 @@ export KBUILD_BUILD_TIMESTAMP="${BUILD_TIME}"
 info "构建时间写入$KBUILD_BUILD_TIMESTAMP"
 
 # 设置工具链路径
-export PATH="$HOME/build_oneplus_sm8750/build_kernel/kernel_platform/prebuilts/clang/host/linux-x86/clang-r510928/bin:$PATH"
+export PATH="$BUILD_DIR/build_kernel/kernel_platform/prebuilts/clang/host/linux-x86/clang-r510928/bin:$PATH"
 export PATH="/usr/lib/ccache:$PATH"
 
 # 安装依赖
@@ -379,7 +380,7 @@ sudo apt update
 sudo apt install -y libelf-dev
 
 # 切换到内核源码目录
-cd $HOME/build_oneplus_sm8750/build_kernel/kernel_platform/common
+cd $BUILD_DIR/build_kernel/kernel_platform/common
 
 # 执行内核构建
 make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
@@ -389,7 +390,7 @@ make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clan
 
 # 进入构建输出目录
 info "打包内核中..."
-cd $HOME/build_oneplus_sm8750/build_kernel/kernel_platform/dist/ || exit
+cd $BUILD_DIR/build_kernel/kernel_platform/dist/ || exit
 
 # 下载并设置补丁工具
 curl -LO https://github.com/ShirkNeko/SukiSU_KernelPatch_patch/releases/download/0.11-beta/patch_linux
@@ -418,13 +419,13 @@ rm -rf ./AnyKernel3/.git
 rm -rf ./AnyKernel3/push.sh
 
 # 将生成的内核镜像文件拷贝到 AnyKernel3 目录
-cp $HOME/build_oneplus_sm8750/build_kernel/kernel_platform/dist/Image ./AnyKernel3/
+cp $BUILD_DIR/build_kernel/kernel_platform/dist/Image ./AnyKernel3/
 
-cd $HOME/build_oneplus_sm8750/build_kernel/kernel_platform/dist/AnyKernel3
+cd $BUILD_DIR/build_kernel/kernel_platform/dist/AnyKernel3
 
 rm -rf README.md
 
-zip -r $HOME/build_oneplus_sm8750/build_kernel/kernel_platform/dist/AnyKernel3_${KSUVER}_${XML_FEIL}_SuKiSu.zip .
+zip -r $BUILD_DIR/build_kernel/kernel_platform/dist/AnyKernel3_${KSUVER}_${XML_FEIL}_SuKiSu.zip .
 
 
 export DEST_PATH="/mnt/c/kernel"
@@ -435,9 +436,9 @@ fi
 
 mkdir -p "$DEST_PATH"
 
-cp $HOME/build_oneplus_sm8750/build_kernel/kernel_platform/dist/AnyKernel3_${KSUVER}_${XML_FEIL}_SuKiSu.zip $DEST_PATH
+cp $BUILD_DIR/build_kernel/kernel_platform/dist/AnyKernel3_${KSUVER}_${XML_FEIL}_SuKiSu.zip $DEST_PATH
 
-find $HOME/build_oneplus_sm8750/build_kernel/kernel_platform/dist/ -type f \( -iname "*img*" -o -iname "Image" -o -iname "*.img" -o -iname "*.tar" -o -iname "*.gz" \) -exec cp {} "$DEST_PATH" \;
+find $BUILD_DIR/build_kernel/kernel_platform/dist/ -type f \( -iname "*img*" -o -iname "Image" -o -iname "*.img" -o -iname "*.tar" -o -iname "*.gz" \) -exec cp {} "$DEST_PATH" \;
 
 
 info "关于本次编译后的所有文件已导出至 C盘 kernel 文件夹"

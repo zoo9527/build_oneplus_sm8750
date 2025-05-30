@@ -4,30 +4,22 @@ info() {
   echo "[INFO] $1"
   tput sgr0
 }
-#设置环境变量
-#CPU型号(骁龙8至尊默认为sm8750)
-export CPU_MODEL="sm8750"
-#要编译的机型xml源码文件名前缀
 while true; do
-  info "请选择机需要编译的机型："
+  info "请选择需要编译的机型："
   info "1) oneplus_ace5_pro"
   info "2) oneplus_13"
-  info "3)oneplus_13t"
   read -p "请输入对应数字: " choice
   case "$choice" in
     1)
       export XML_FEIL="oneplus_ace5_pro"
       info "选择的机型：$XML_FEIL"
+      export BUILD_TIME="2024-12-04 02:11:16 UTC"
       break
       ;;
     2)
       export XML_FEIL="oneplus_13"
       info "选择的机型：$XML_FEIL"
-      break
-      ;;
-    3)
-      export XML_FEIL="oneplus_13t"
-      info "选择的机型：$XML_FEIL"
+      export BUILD_TIME="2024-12-17 23:36:49 UTC"
       break
       ;;
     *)
@@ -35,6 +27,7 @@ while true; do
       ;;
   esac
 done
+
 # 原始内核名称
 export KERNEL_NAME="-android15-8-g013ec21bba94-abogki383916444"
 
@@ -47,10 +40,8 @@ if [[ -n "$kernel_suffix" ]]; then
   export KERNEL_NAME="${KERNEL_NAME}-${kernel_suffix}"
 fi
 
-echo "最终的内核名称为：$KERNEL_NAME"
-
-#内核构建时间
-export BUILD_TIME="2024-12-04 02:11:16 UTC"
+echo "最终的内核名称为：6.6.30-$KERNEL_NAME"
+echo "构建时间为：$BUILD_TIME"
 # 是否开启 KPM
 while true; do
   read -p "是否开启 KPM？(1=开启, 0=关闭): " kpm
@@ -85,10 +76,7 @@ while true; do
 done
 
 info "请确认您要编译的参数，如不符合请按下Ctrl+C取消运行："
-info "CPU型号：${CPU_MODEL}"
 info "选择机型：${XML_FEIL}"
-info "安卓版本：android15"
-info "内核版本：6.6"
 info "内核名称：${KERNEL_NAME}"
 
 #设置Git用户名与邮箱
@@ -110,7 +98,7 @@ sudo mv $HOME/build_oneplus_sm8750/repo /usr/local/bin/repo
 #创建内核工作目录并克隆源码
 info "正在创建工作目录并拉取源码"
 mkdir build_kernel && cd build_kernel
-repo init -u https://github.com/showdo/kernel_manifest.git -b refs/heads/oneplus/${CPU_MODEL} -m ${XML_FEIL}.xml --depth=1
+repo init -u https://github.com/showdo/kernel_manifest.git -b refs/heads/oneplus/sm8750 -m ${XML_FEIL}.xml --depth=1
 #同步内核源码
 repo --trace sync -c -j$(nproc --all) --no-tags
 #删除ABI保护符
@@ -358,7 +346,7 @@ if [ "$KERNEL_SCX" == "1" ]; then
     cd $HOME/build_oneplus_sm8750/build_kernel/kernel_platform/ || exit
 
     # 克隆 sched_ext 仓库
-    git clone https://github.com/HanKuCha/sched_ext.git
+    git clone https://github.com/showdo/sched_ext.git
 
     # 复制文件到风驰目录
     cp -r ./sched_ext/* ./common/kernel/sched

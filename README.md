@@ -2,7 +2,7 @@
 ### 复刻时请不要更改项目名 否则将编译失败
 ## 使用方法<br>
 * `git clone https://github.com/showdo/build_oneplus_sm8750.git`<br>
-#### ⚠️注意：如果你想你复刻的项目进行编译请将上面链接中的``showdo``改成为你的github用户名<br>
+#### ⚠️注意：如果你想使用你复刻的项目进行编译请将上面链接中的``showdo``改成为你的github用户名<br>
 #### 假设你的用户名为``abcd``则你的链接为``git clone https://github.com/abcd/build_oneplus_sm8750.git``<br>
 * ``cd build_oneplus_sm8750``<br>
 * ``chmod +x Build_Kernel.sh``<br>

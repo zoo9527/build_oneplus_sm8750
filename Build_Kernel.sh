@@ -13,13 +13,13 @@ while true; do
     1)
       export XML_FEIL="oneplus_ace5_pro"
       info "选择的机型：$XML_FEIL"
-      export BUILD_TIME="2024-12-04 02:11:16 UTC"
+      export BUILD_TIME="Wed Dec 4 02:11:46 UTC 2024"
       break
       ;;
     2)
       export XML_FEIL="oneplus_13"
       info "选择的机型：$XML_FEIL"
-      export BUILD_TIME="2024-12-17 23:36:49 UTC"
+      export BUILD_TIME="Wed Dec 17 23:36:49 UTC 2024"
       break
       ;;
     *)
@@ -31,17 +31,6 @@ done
 # 原始内核名称
 export KERNEL_NAME="-android15-8-g013ec21bba94-abogki383916444"
 
-# 提示用户输入后缀（最多11个字符），可为空
-read -p "请输入内核名称后缀 限11个字符（回车默认使用原始内核名）: " kernel_suffix
-kernel_suffix=${kernel_suffix:0:11}  # 限制最多11个字符
-
-# 如果用户有输入，则加上 -，否则保留原值
-if [[ -n "$kernel_suffix" ]]; then
-  export KERNEL_NAME="${KERNEL_NAME}-${kernel_suffix}"
-fi
-
-echo "最终的内核名称为：6.6.30-$KERNEL_NAME"
-echo "构建时间为：$BUILD_TIME"
 # 是否开启 KPM
 while true; do
   read -p "是否开启 KPM？(1=开启, 0=关闭): " kpm
@@ -87,23 +76,40 @@ git config --global user.email "sucisama2888@gmail.com"
 info "安装环境依赖"
 sudo apt update && sudo apt upgrade -y
 sudo apt install -y python3 git curl
+sudo apt install -y python3 git curl ccache
 sudo apt install  -y zip
 
-#下载repo并移动至bin目录给予权限
-info "下载repo并给予权限"
-curl https://storage.googleapis.com/git-repo-downloads/repo > $HOME/build_oneplus_sm8750/repo
-chmod a+x $HOME/build_oneplus_sm8750/repo
-sudo mv $HOME/build_oneplus_sm8750/repo /usr/local/bin/repo
+#!/bin/bash
 
-#创建内核工作目录并克隆源码
-info "正在创建工作目录并拉取源码"
-mkdir build_kernel && cd build_kernel
-repo init -u https://github.com/showdo/kernel_manifest.git -b refs/heads/oneplus/sm8750 -m ${XML_FEIL}.xml --depth=1
-#同步内核源码
+# 更新系统并安装依赖
+info "更新系统并安装依赖..."
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y python3 git curl ccache
+
+# 恢复 ccache
+info "显示 ccache 状态..."
+mkdir -p $HOME/.ccache
+ccache -s
+info "清除ccache缓存..."
+# 清空缓存
+ccache -C
+
+# 安装 repo 工具
+info "安装 repo 工具..."
+curl -o /usr/local/bin/repo https://storage.googleapis.com/git-repo-downloads/repo
+sudo chmod a+x /usr/local/bin/repo
+
+# 初始化 repo 并同步
+info "初始化 repo 并同步..."
+mkdir -p build_kernel
+cd build_kernel
+repo init -u https://github.com/JiuGeFaCai/kernel_manifest.git -b refs/heads/oneplus/sm8750 -m ${XML_FEIL}.xml --depth=1
 repo --trace sync -c -j$(nproc --all) --no-tags
-#删除ABI保护符
-rm kernel_platform/common/android/abi_gki_protected_exports_* || info "No File"
-rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || info "No File"
+
+# 删除不需要的导出文件
+info "删除非必要的导出文件..."
+rm -f kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
+rm -f kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
 
 #拉取SukiSU源码并设置版本号
 info "开始拉取SukiSU并写入版本"
@@ -166,16 +172,13 @@ else
     info "未启用LZ4，跳过修补LZ4"
 fi
 
-echo "开始编译设备树节点"
+#!/bin/bash
 
-# 设置路径变量
-KERNEL_DIR="$HOME/build_oneplus_sm8750/build_kernel/kernel_platform/common/drivers"
-PATCH_FILE="${KERNEL_DIR}/hmbird_patch.c"
-MAKEFILE="${KERNEL_DIR}/Makefile"
+# 进入内核源码的 drivers 目录
+cd $HOME/build_oneplus_sm8750/build_kernel//kernel_platform/common/drivers
 
-# 创建补丁文件
-mkdir -p "$KERNEL_DIR"
-cat << 'EOF' > "$PATCH_FILE"
+# 创建 hmbird_patch.c 文件
+cat << 'EOF' > hmbird_patch.c
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/of.h>
@@ -190,85 +193,76 @@ static int __init hmbird_patch_init(void)
 
     ver_np = of_find_node_by_path("/soc/oplus,hmbird/version_type");
     if (!ver_np) {
-        pr_info("hmbird_patch: version_type node not found\n");
-        return 0;
+         pr_info("hmbird_patch: version_type node not found\n");
+         return 0;
     }
 
     ret = of_property_read_string(ver_np, "type", &type);
     if (ret) {
-        pr_info("hmbird_patch: type property not found\n");
-        of_node_put(ver_np);
-        return 0;
+         pr_info("hmbird_patch: type property not found\n");
+         of_node_put(ver_np);
+         return 0;
     }
 
     if (strcmp(type, "HMBIRD_OGKI")) {
-        of_node_put(ver_np);
-        return 0;
+         of_node_put(ver_np);
+         return 0;
     }
 
     struct property *prop = of_find_property(ver_np, "type", NULL);
     if (prop) {
-        struct property *new_prop = kmalloc(sizeof(*prop), GFP_KERNEL);
-        if (!new_prop) {
-            pr_info("hmbird_patch: kmalloc for new_prop failed\n");
-            of_node_put(ver_np);
-            return 0;
-        }
-        memcpy(new_prop, prop, sizeof(*prop));
-        new_prop->value = kmalloc(strlen("HMBIRD_GKI") + 1, GFP_KERNEL);
-        if (!new_prop->value) {
-            pr_info("hmbird_patch: kmalloc for new_prop->value failed\n");
-            kfree(new_prop);
-            of_node_put(ver_np);
-            return 0;
-        }
-        strcpy(new_prop->value, "HMBIRD_GKI");
-        new_prop->length = strlen("HMBIRD_GKI") + 1;
+         struct property *new_prop = kmalloc(sizeof(*prop), GFP_KERNEL);
+         if (!new_prop) {
+              pr_info("hmbird_patch: kmalloc for new_prop failed\n");
+              of_node_put(ver_np);
+              return 0;
+         }
+         memcpy(new_prop, prop, sizeof(*prop));
+         new_prop->value = kmalloc(strlen("HMBIRD_GKI") + 1, GFP_KERNEL);
+         if (!new_prop->value) {
+              pr_info("hmbird_patch: kmalloc for new_prop->value failed\n");
+              kfree(new_prop);
+              of_node_put(ver_np);
+              return 0;
+         }
+         strcpy(new_prop->value, "HMBIRD_GKI");
+         new_prop->length = strlen("HMBIRD_GKI") + 1;
 
-        if (of_remove_property(ver_np, prop) != 0) {
-            pr_info("hmbird_patch: of_remove_property failed\n");
-            kfree(new_prop->value);
-            kfree(new_prop);
-            of_node_put(ver_np);
-            return 0;
-        }
-
-        if (of_add_property(ver_np, new_prop) != 0) {
-            pr_info("hmbird_patch: of_add_property failed\n");
-            kfree(new_prop->value);
-            kfree(new_prop);
-            of_node_put(ver_np);
-            return 0;
-        }
-
-        pr_info("hmbird_patch: success from HMBIRD_OGKI to HMBIRD_GKI\n");
-    } else {
-        pr_info("hmbird_patch: type property structure not found\n");
+         if (of_remove_property(ver_np, prop) != 0) {
+              pr_info("hmbird_patch: of_remove_property failed\n");
+              return 0;
+         }
+         if (of_add_property(ver_np, new_prop) != 0) {
+              pr_info("hmbird_patch: of_add_property failed\n");
+              return 0;
+         }
+         pr_info("hmbird_patch: success from HMBIRD_OGKI to HMBIRD_GKI\n");
     }
-
+    else {
+         pr_info("hmbird_patch: type property structure not found\n");
+    }
     of_node_put(ver_np);
     return 0;
 }
+
 early_initcall(hmbird_patch_init);
+
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("reigadegr");
 MODULE_DESCRIPTION("Forcefully convert HMBIRD_OGKI to HMBIRD_GKI.");
 EOF
 
-# 确保 Makefile 包含编译目标
-if ! grep -q "hmbird_patch.o" "$MAKEFILE"; then
-    echo "obj-y += hmbird_patch.o" >> "$MAKEFILE"
-    info "已添加 hmbird_patch.o 到 Makefile"
-else
-    info "Makefile 中已包含 hmbird_patch.o"
+# 如果 Makefile 中没有添加该模块，则追加 obj-y += hmbird_patch.o
+if ! grep -q "hmbird_patch.o" Makefile; then
+    echo "obj-y += hmbird_patch.o" >> Makefile
 fi
 
-# 返回根目录提交修改
-cd $HOME/build_oneplus_sm8750/build_kernel/kernel_platform || exit 1
-git add -A
-git commit -m "Add HMBird GKI patch" || info "没有变化需要提交"
+# 返回上一层目录
+cd $HOME/build_oneplus_sm8750/build_kernel
 
-info "[完成] 提交设备数节点结束"
+# 提交更改
+git add -A
+git commit -m "Add HMBird GKI patch" || true
 
 
 # 进入工作目录
@@ -335,9 +329,15 @@ fi
 
 # 修改内核名称
 cd $HOME/build_oneplus_sm8750/build_kernel/kernel_platform/ || exit
-sed -i 's/res="\$res\$(cat "\$file")"/res="-android15-8-g013ec21bba94-abogki383916444"/g' ./common/scripts/setlocalversion
-sudo sed -i "s/-android15-8-g013ec21bba94-abogki383916444/$KERNEL_NAME/g" ./common/scripts/setlocalversion
 
+# 删除 setlocalversion 中的 ${scm_version} 字符串
+sed -i 's/${scm_version}//' ./common/scripts/setlocalversion
+
+# 将 gki_defconfig 中的 -4k 替换
+sudo sed -i "s/-4k/${KERNEL_NAME}/g" ./common/arch/arm64/configs/gki_defconfig
+
+#备用修改name
+#sudo sed -i "s/\(.*\)-4k$/\1-${KERNEL_NAME}-4k/" ./common/arch/arm64/configs/gki_defconfig
 
 # 检查是否启用 风驰
 if [ "$KERNEL_SCX" == "1" ]; then
@@ -362,20 +362,29 @@ else
 fi
 
 # 使用 date 命令将日期转换为 Unix 时间戳
-info "开始修改构建时间"
-SOURCE_DATE_EPOCH=$(date -d "$KERNEL_TIME" +%s)
+info "还原官方构建时间"
+SOURCE_DATE_EPOCH=$(date -d "$BUILD_TIME" +%s)
 
 #将时间戳设为环境变量
-export SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}
-info "已设置构建时间为${BUILD_TIME}" 
-# 进入工作目录
-cd $HOME/build_oneplus_sm8750/build_kernel/kernel_platform || exit
+export KBUILD_BUILD_TIMESTAMP="${BUILD_TIME}"
 
-# 执行构建命令
-info "开始构建编译内核"
-tools/bazel run --config=fast --config=stamp --lto=thin //common:kernel_aarch64_dist -- --dist_dir=dist
+info "构建时间写入$KBUILD_BUILD_TIMESTAMP"
 
-info "内核编译成功"
+# 设置工具链路径
+export PATH="$HOME/build_oneplus_sm8750/build_kernel/kernel_platform/prebuilts/clang/host/linux-x86/clang-r510928/bin:$PATH"
+export PATH="/usr/lib/ccache:$PATH"
+
+# 安装依赖
+sudo apt update
+sudo apt install -y libelf-dev
+
+# 切换到内核源码目录
+cd $HOME/build_oneplus_sm8750/build_kernel/kernel_platform/common
+
+# 执行内核构建
+make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
+     RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
+     LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-Wno-error gki_defconfig all
 
 
 # 进入构建输出目录

@@ -1,4 +1,5 @@
 # 一加13、ACE 5 Pro本地编译<br>
+### 复刻时请不要更改项目名 否则将编译失败
 ## 使用方法<br>
 * `git clone https://github.com/showdo/build_oneplus_sm8750.git`<br>
 * ``cd build_oneplus_sm8750``<br>

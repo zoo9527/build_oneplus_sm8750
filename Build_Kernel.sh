@@ -35,13 +35,6 @@ while true; do
       ;;
   esac
 done
-
-#处理器代号
-#export CPU_CODE="sun"
-#安卓版本
-export ANDROID_VERSION="android15"
-#内核版本
-export KERNEL_VERSION="6.6"
 # 原始内核名称
 export KERNEL_NAME="-android15-8-g013ec21bba94-abogki383916444"
 
@@ -94,8 +87,8 @@ done
 info "请确认您要编译的参数，如不符合请按下Ctrl+C取消运行："
 info "CPU型号：${CPU_MODEL}"
 info "选择机型：${XML_FEIL}"
-info "安卓版本：${ANDROID_VERSION}"
-info "内核版本：${KERNEL_VERSION}"
+info "安卓版本：android15"
+info "内核版本：6.6"
 info "内核名称：${KERNEL_NAME}"
 
 #设置Git用户名与邮箱
@@ -141,10 +134,10 @@ sed -i "s/DKSU_VERSION=12800/DKSU_VERSION=${KSU_VERSION}/" kernel/Makefile
 #写入SUSFS补丁
 info "开始修补SUSFS补丁"
 cd $HOME/build_oneplus_sm8750/build_kernel
-git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-${ANDROID_VERSION}-${KERNEL_VERSION}
+git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android15-6.6
 git clone https://github.com/ShirkNeko/SukiSU_patch.git
 cd $HOME/build_oneplus_sm8750/build_kernel/kernel_platform
-cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-${ANDROID_VERSION}-${KERNEL_VERSION}.patch ./common/
+cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-android15-6.6.patch ./common/
 cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/
 cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
 
@@ -154,11 +147,11 @@ cp -r ../SukiSU_patch/other/zram/lz4k/lib/* ./common/lib
 cp -r ../SukiSU_patch/other/zram/lz4k/crypto/* ./common/crypto
 cp -r ../SukiSU_patch/other/zram/lz4k_oplus ./common/lib/
 cd ./common
-sed -i 's/-32,12 +32,38/-32,11 +32,37/g' 50_add_susfs_in_gki-${ANDROID_VERSION}-${KERNEL_VERSION}.patch
-sed -i '/#include <trace\/hooks\/fs.h>/d' 50_add_susfs_in_gki-${ANDROID_VERSION}-${KERNEL_VERSION}.patch
+sed -i 's/-32,12 +32,38/-32,11 +32,37/g' 50_add_susfs_in_gki-android15-6.6.patch
+sed -i '/#include <trace\/hooks\/fs.h>/d' 50_add_susfs_in_gki-android15-6.6.patch
 
 # 应用补丁
-patch -p1 < 50_add_susfs_in_gki-${ANDROID_VERSION}-${KERNEL_VERSION}.patch || true
+patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || true
 # 复制补丁文件
 cp ../../SukiSU_patch/hooks/syscall_hooks.patch ./
 
@@ -175,7 +168,7 @@ if [ "${KERNEL_LZ4}" = "1" ]; then
     cd $HOME/build_oneplus_sm8750/build_kernel/kernel_platform/common
     
     # 复制补丁文件
-    cp ../../SukiSU_patch/other/zram/zram_patch/${KERNEL_VERSION}/lz4kd.patch ./
+    cp ../../SukiSU_patch/other/zram/zram_patch/6.6/lz4kd.patch ./
     
     # 应用补丁
     patch -p1 -F 3 < lz4kd.patch || true

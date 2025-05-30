@@ -26,4 +26,7 @@
 
 #### (6) 设置默认用户<br>
 ``ubuntu2004.exe config --default-user <username>  ``<br>
+其中的``<username>``为你安装WSL时设置的用户名<br>
+我的用户名为``qiidaoyu``则命令为：<br>
+``ubuntu2004.exe config --default-user qiudaoyu  ``<br>
 #### 如果是ubuntu20.04 就是ubuntu2004.exe<br>

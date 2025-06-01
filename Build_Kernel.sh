@@ -143,10 +143,10 @@ rm -f kernel_platform/msm-kernel/android/abi_gki_protected_exports_*
 
 # 设置SukiSU
 info "设置SukiSU..."
-cd kernel_platform || error "进入kernel_platform失败"
+cd ${WORKSPACE}/kernel_workspace/kernel_platform || error "进入kernel_platform失败"
 curl -LSs "https://raw.githubusercontent.com/ShirkNeko/SukiSU-Ultra/main/kernel/setup.sh" | bash -s susfs-dev || error "SukiSU设置失败"
 
-cd KernelSU || error "进入KernelSU目录失败"
+cd ${WORKSPACE}/kernel_workspace/kernel_platform/KernelSU || error "进入KernelSU目录失败"
 KSU_VERSION=$(expr $(/usr/bin/git rev-list --count main) "+" 10606)
 export KSU_VERSION=$KSU_VERSION
 sed -i "s/DKSU_VERSION=12800/DKSU_VERSION=${KSU_VERSION}/" kernel/Makefile || error "修改KernelSU版本失败"
@@ -157,7 +157,7 @@ cd "$WORKSPACE/kernel_workspace" || error "返回工作目录失败"
 git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android15-6.6 || error "克隆susfs4ksu失败"
 git clone https://github.com/ShirkNeko/SukiSU_patch.git || error "克隆SukiSU_patch失败"
 
-cd kernel_platform || error "进入kernel_platform失败"
+cd ${WORKSPACE}/kernel_workspace/kernel_platform || error "进入kernel_platform失败"
 cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-android15-6.6.patch ./common/
 cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/
 cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
@@ -169,12 +169,12 @@ cp -r ../SukiSU_patch/other/zram/lz4k/crypto/* ./common/crypto
 cp -r ../SukiSU_patch/other/zram/lz4k_oplus ./common/lib/
 
 # 应用补丁
-cd common || error "进入common目录失败"
+cd ${WORKSPACE}/kernel_workspace/kernel_platform/common || error "进入common目录失败"
 sed -i 's/-32,12 +32,38/-32,11 +32,37/g' 50_add_susfs_in_gki-android15-6.6.patch
 sed -i '/#include <trace\/hooks\/fs.h>/d' 50_add_susfs_in_gki-android15-6.6.patch
 
 patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || info "SUSFS补丁应用可能有警告"
-cp ../../SukiSU_patch/hooks/syscall_hooks.patch ./
+cp ${WORKSPACE}/kernel_workspace/SukiSU_patch/hooks/syscall_hooks.patch ./
 patch -p1 -F 3 < syscall_hooks.patch || info "syscall_hooks补丁应用可能有警告"
 
 # 应用HMBird GKI补丁
@@ -256,20 +256,18 @@ if ! grep -q "hmbird_patch.o" Makefile; then
     echo "obj-y += hmbird_patch.o" >> Makefile
 fi
 
-cd ../../../ || error "返回kernel_platform目录失败"
-
 # 应用lz4kd补丁
 if [ "$ENABLE_LZ4KD" = true ]; then
     info "应用lz4kd补丁..."
-    cd common || error "进入common目录失败"
+    cd ${WORKSPACE}/kernel_workspace/kernel_platform/common || error "进入common目录失败"
     cp ${WORKSPACE}/kernel_workspace/SukiSU_patch/other/zram/zram_patch/6.6/lz4kd.patch ./
     patch -p1 -F 3 < lz4kd.patch || info "lz4kd补丁应用可能有警告"
-    cd .. || error "返回上级目录失败"
+    cd ${WORKSPACE}/kernel_workspace/kernel_platform || error "返回上级目录失败"
 fi
 
 # 添加SUSFS配置
 info "添加SUSFS配置..."
-cd common/arch/arm64/configs || error "进入configs目录失败"
+cd ${WORKSPACE}/kernel_workspace/kernel_platform/common/arch/arm64/configs || error "进入configs目录失败"
 echo -e "CONFIG_KSU=y
 CONFIG_KSU_SUSFS_SUS_SU=n
 CONFIG_KSU_MANUAL_HOOK=y
@@ -317,7 +315,7 @@ export KBUILD_BUILD_TIMESTAMP="$KERNEL_TIME"
 export PATH="$WORKSPACE/kernel_workspace/kernel_platform/prebuilts/clang/host/linux-x86/clang-r510928/bin:$PATH"
 export PATH="/usr/lib/ccache:$PATH"
 
-cd common || error "进入common目录失败"
+cd ${WORKSPACE}/kernel_workspace/kernel_platform/common || error "进入common目录失败"
 make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
     RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
     PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
@@ -325,7 +323,7 @@ make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clan
 
 # 应用Linux补丁
 info "应用Linux补丁..."
-cd out/arch/arm64/boot || error "进入boot目录失败"
+cd ${WORKSPACE}/kernel_workspace/kernel_platform/out/arch/arm64/boot || error "进入boot目录失败"
 curl -LO https://github.com/ShirkNeko/SukiSU_KernelPatch_patch/releases/download/0.11-beta/patch_linux || error "下载patch_linux失败"
 chmod +x patch_linux
 ./patch_linux || error "应用patch_linux失败"
@@ -342,9 +340,9 @@ cp ${WORKSPACE}/kernel_workspace/kernel_platform/common/out/arch/arm64/boot/Imag
 
 # 打包
 cd AnyKernel3 || error "进入AnyKernel3目录失败"
-zip -r "../SuKiSu_${KSU_VERSION}_${DEVICE_NAME}.zip" ./* || error "打包失败"
+zip -r "../AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip" ./* || error "打包失败"
 
-info "构建完成! 内核包路径: $WORKSPACE/SuKiSu_${KSU_VERSION}_${DEVICE_NAME}.zip"
+info "构建完成! 内核包路径: $WORKSPACE/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip"
 
 # 创建C盘输出目录（通过WSL访问Windows的C盘）
 WIN_OUTPUT_DIR="/mnt/c/Kernel_Build/${DEVICE_NAME}"
@@ -357,16 +355,8 @@ mkdir -p "$KERNEL_OUTPUT_DIR"
 
 # 复制Image和AnyKernel3包
 cp "$WORKSPACE/kernel_workspace/kernel_platform/common/out/arch/arm64/boot/Image" "$KERNEL_OUTPUT_DIR/"
-cp "$WORKSPACE/SuKiSu_${KSU_VERSION}_${DEVICE_NAME}.zip" "$KERNEL_OUTPUT_DIR/"
+cp "$WORKSPACE/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip" "$KERNEL_OUTPUT_DIR/"
 
-# 尝试复制到Windows目录（如果WSL已挂载C盘）
-if [ -d "/mnt/c" ]; then
-    cp "$KERNEL_OUTPUT_DIR/Image" "$WIN_OUTPUT_DIR/" || info "Image复制到Windows失败"
-    cp "$KERNEL_OUTPUT_DIR/SuKiSu_${KSU_VERSION}_${DEVICE_NAME}.zip" "$WIN_OUTPUT_DIR/" || info "刷机包复制到Windows失败"
-    info "编译结果已保存到: C:\\Kernel_Build\\${DEVICE_NAME}"
-else
-    info "未检测到C盘挂载，编译结果保存在: $KERNEL_OUTPUT_DIR"
-fi
 # 在编译完成并复制Image和AnyKernel3包后，强制清理所有临时文件和修改：
 info "正在彻底重置工作目录到初始同步状态..."
 

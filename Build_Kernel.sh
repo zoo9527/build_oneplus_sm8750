@@ -100,9 +100,16 @@ sudo apt install  -y zip
 
 # 安装 repo 工具
 info "安装 repo 工具并同步源码..."
-curl https://storage.googleapis.com/git-repo-downloads/repo > ~/repo
-chmod a+x ~/repo
-sudo mv ~/repo /usr/local/bin/repo
+REPO_TMP=$(mktemp)
+curl -fsSL https://storage.googleapis.com/git-repo-downloads/repo -o "$REPO_TMP" || {
+    info "❌ 下载 repo 工具失败"
+    exit 1
+}
+chmod a+x "$REPO_TMP"
+sudo mv "$REPO_TMP" /usr/local/bin/repo || {
+    info "❌ 安装 repo 工具失败"
+    exit 1
+}
 mkdir build_kernel && cd build_kernel
 repo init -u ${XML_FEIL} --depth=1
 repo --trace sync -c -j$(nproc --all) --no-tags

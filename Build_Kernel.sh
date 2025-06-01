@@ -4,7 +4,7 @@ info() {
   echo "[INFO] $1"
   tput sgr0
 }
-BUILD_DIR="$HOME/build_oneplus_sm8750/"
+export BUILD_DIR="$HOME/build_oneplus_sm8750/"
 while true; do
   info "请选择需要编译的机型："
   info "1) oneplus_ace5_pro"
@@ -99,23 +99,15 @@ sudo apt install -y python3 git curl ccache
 sudo apt install  -y zip
 
 # 安装 repo 工具
-info "安装 repo 工具..."
+info "安装 repo 工具并同步源码..."
 curl https://storage.googleapis.com/git-repo-downloads/repo > ~/repo
 chmod a+x ~/repo
 sudo mv ~/repo /usr/local/bin/repo
-
-# 初始化 repo 并同步
-info "初始化 repo 并同步..."
-mkdir -p ${BUILD_DIR}build_kernel
-cd ~/build_oneplus_sm8750/build_kernel
-rm -rf .repo
+mkdir build_kernel && cd build_kernel
 repo init -u ${XML_FEIL} --depth=1
 repo --trace sync -c -j$(nproc --all) --no-tags
-
-# 删除不需要的导出文件
-info "删除非必要的导出文件..."
-rm -f ${BUILD_DIR}build_kernel/kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
-rm -f ${BUILD_DIR}build_kernel/kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
+rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
+rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
 
 #拉取SukiSU源码并设置版本号
 info "开始拉取SukiSU并写入版本"

@@ -7,8 +7,8 @@
 #### 假设你的用户名为``abcd``则你的链接为``git clone https://github.com/abcd/build_oneplus_sm8750.git``<br>
 * ``cd build_oneplus_sm8750``<br>
 * ``chmod +x Build_Kernel.sh``<br>
-* ``sudo -E ./Build_Kernel.sh``<br>
-#### ⚠️注意：这里的 -E必须有，否则主目录会识别成/root从而找不到目录导致编译失败<br>
+* ``./Build_Kernel.sh``<br>
+
 ## Windows推荐使用WSL运行-这里提供WSL转移到其他盘（E）避免文件占用C盘<br>
 ### WSL2迁移至其他目录<br>
 #### (1) 管理员身份运行PowerShell，执行：<br>

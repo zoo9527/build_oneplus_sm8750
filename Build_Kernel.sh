@@ -255,10 +255,6 @@ fi
 # 返回到上级目录
 cd ${BUILD_DIR}build_kernel
 
-# 使用 git 提交更改
-git add -A
-git commit -m "Add HMBird GKI patch" || true
-
 
 
 
@@ -285,9 +281,6 @@ echo -e "CONFIG_KSU=y\nCONFIG_KSU_SUSFS_SUS_SU=n\nCONFIG_KSU_MANUAL_HOOK=y\nCONF
 # 移除 check_defconfig
 sudo sed -i 's/check_defconfig//' ./common/build.config.gki
 
-# 提交修改
-cd common
-git add -A && git commit -m "BUILD Kernel"
 
 
 # 检查 是否开启KPM
@@ -301,10 +294,6 @@ if [ "$KERNEL_KPM" = "1" ]; then
   
   # 删除 check_defconfig
   sudo sed -i 's/check_defconfig//' ./common/build.config.gki
-  
-  # 提交更改到 Git
-  cd common
-  git add -A && git commit -a -m "BUILD Kernel"
   info "KPM配置完成"
 else
   info "KPM 配置未启用，跳过配置"

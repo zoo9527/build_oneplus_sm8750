@@ -111,6 +111,12 @@ sudo mv "$REPO_TMP" /usr/local/bin/repo || {
     exit 1
 }
 mkdir build_kernel && cd build_kernel
+# 在 repo init 前添加检查
+if [ -d "${BUILD_DIR}build_kernel/.repo" ]; then
+    info "检测到已存在的 repo 初始化，正在清理..."
+    rm -rf "${BUILD_DIR}build_kernel/.repo"
+fi
+
 repo init -u ${XML_FEIL} --depth=1
 repo --trace sync -c -j$(nproc --all) --no-tags
 rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"

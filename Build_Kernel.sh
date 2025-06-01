@@ -36,8 +36,33 @@ while true; do
   esac
 done
 
+
 # 原始内核名称
-export KERNEL_NAME="-android15-8-g013ec21bba94-abogki383916444-4k"
+KERNEL_NAME="-android15-8-g013ec21bba94-abogki383916444-4k"
+
+# 选择内核名称修改操作
+info "请选择内核名称设置方式："
+info "1: 保持原官核名称"
+info "2: 自定义内核名称（支持中文和emoji）"
+
+# 读取用户输入
+read -p "请输入选项 (1 或 2): " choice
+
+# 根据用户选择执行不同操作
+if [[ "$choice" == "1" ]]; then
+    # 保持原始内核名称
+    echo "已选择保持原官核名称"
+elif [[ "$choice" == "2" ]]; then
+    # 允许用户输入自定义内核名称
+    read -p "请输入自定义内核名称（支持中文和emoji）: " custom_name
+    KERNEL_NAME="$custom_name"
+    info "已选择自定义内核名称：$KERNEL_NAME"
+else
+    # 用户输入无效
+    echo "无效选项，请输入 1 或 2"
+    exit 1
+fi
+
 export CCACHE_DIR=$HOME/.ccache
 # 是否开启 KPM
 

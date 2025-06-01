@@ -323,7 +323,7 @@ make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clan
 
 # 应用Linux补丁
 info "应用Linux补丁..."
-cd ${WORKSPACE}/kernel_workspace/kernel_platform/out/arch/arm64/boot || error "进入boot目录失败"
+cd ${WORKSPACE}/kernel_workspace/kernel_platform/common//out/arch/arm64/boot || error "进入boot目录失败"
 curl -LO https://github.com/ShirkNeko/SukiSU_KernelPatch_patch/releases/download/0.11-beta/patch_linux || error "下载patch_linux失败"
 chmod +x patch_linux
 ./patch_linux || error "应用patch_linux失败"
@@ -345,17 +345,12 @@ zip -r "../AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip" ./* || error "�
 info "构建完成! 内核包路径: $WORKSPACE/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip"
 
 # 创建C盘输出目录（通过WSL访问Windows的C盘）
-WIN_OUTPUT_DIR="/mnt/c/Kernel_Build/${DEVICE_NAME}"
+WIN_OUTPUT_DIR="/mnt/c/Kernel_Build/${DEVICE_NAME}/"
 mkdir -p "$WIN_OUTPUT_DIR" || info "无法创建Windows目录，可能未挂载C盘，将保存到Linux目录"
 
-# 导出Image和刷机包
-info "导出编译结果..."
-KERNEL_OUTPUT_DIR="$WORKSPACE/output_${DEVICE_NAME}_$(date +%Y%m%d_%H%M%S)"
-mkdir -p "$KERNEL_OUTPUT_DIR"
-
 # 复制Image和AnyKernel3包
-cp "$WORKSPACE/kernel_workspace/kernel_platform/common/out/arch/arm64/boot/Image" "$KERNEL_OUTPUT_DIR/"
-cp "$WORKSPACE/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip" "$KERNEL_OUTPUT_DIR/"
+cp "$WORKSPACE/kernel_workspace/kernel_platform/common/out/arch/arm64/boot/Image" "$WIN_OUTPUT_DIR/"
+cp "$WORKSPACE/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip" "$WIN_OUTPUT_DIR/"
 
 # 在编译完成并复制Image和AnyKernel3包后，强制清理所有临时文件和修改：
 info "正在彻底重置工作目录到初始同步状态..."
@@ -373,4 +368,4 @@ info "当前工作目录状态："
 ls -l "$WORKSPACE/kernel_workspace"
 
 info "已完全重置！下次编译将从零开始（重新下载susfs、重新打补丁等）。"
-info "内核包路径: $KERNEL_OUTPUT_DIR/SuKiSu_${KSU_VERSION}_${DEVICE_NAME}.zip"
+info "内核包路径: $WIN_OUTPUT_DIR/SuKiSu_${KSU_VERSION}_${DEVICE_NAME}.zip"

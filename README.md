@@ -1,5 +1,6 @@
-# 一加13、ACE 5 Pro本地编译<br>
+# 一加13、ACE 5 Pro本地编译
 ### 复刻时请不要更改项目名 否则将编译失败
+#### 该脚本转译自酷安@Futabawa，如有侵权请联系``qiudaoyu2888@gmail.com``删除
 ## 使用方法<br>
 * `git clone https://github.com/showdo/build_oneplus_sm8750.git`<br>
 #### ⚠️注意：如果你想使用你复刻的项目进行编译请将上面链接中的``showdo``改成为你的github用户名<br>
@@ -33,4 +34,4 @@
 其中的``<username>``为你安装WSL时设置的用户名<br>
 我的用户名为``qiudaoyu``则命令为：<br>
 ``ubuntu2004.exe config --default-user qiudaoyu  ``<br>
-#### 如果是ubuntu20.04 就是ubuntu2004.exe<br>
+<br>

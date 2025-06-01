@@ -315,20 +315,42 @@ sudo sed -i "s/-4k/${KERNEL_NAME}/g" ./common/arch/arm64/configs/gki_defconfig
 # 设置构建时间戳
 export KBUILD_BUILD_TIMESTAMP="${BUILD_TIME}"
 
-# 设置 Clang 路径和 ccache
-export PATH="${BUILD_DIR}build_kernel/kernel_platform/prebuilts/clang/host/linux-x86/clang-r510928/bin:$PATH"
-export PATH="/usr/lib/ccache:$PATH"
+# # 设置 Clang 路径和 ccache
+# export PATH="${BUILD_DIR}build_kernel/kernel_platform/prebuilts/clang/host/linux-x86/clang-r510928/bin:$PATH"
+# export PATH="/usr/lib/ccache:$PATH"
 
-# 安装 libelf-dev
-sudo apt install -y libelf-dev
+# # 安装 libelf-dev
+# sudo apt install -y libelf-dev
 
-# 切换到内核代码目录并开始构建
+# # 切换到内核代码目录并开始构建
+# cd ${BUILD_DIR}build_kernel/kernel_platform/common
+
+# # 使用 Clang 和 Rust 构建内核
+# info "开始构建内核"
+# make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-Wno-error gki_defconfig all
+# 设置工具链路径
+export PATH="\
+${BUILD_DIR}build_kernel/kernel_platform/prebuilts/clang/host/linux-x86/clang-r510928/bin:\
+${BUILD_DIR}build_kernel/kernel_platform/prebuilts/rust/linux-x86/1.73.0b/bin:\
+${BUILD_DIR}build_kernel/kernel_platform/prebuilts/kernel-build-tools/linux-x86/bin:\
+/usr/lib/ccache:\
+/usr/bin:\
+$PATH"
+
+# 验证工具
+info "检查工具链..."
+which make clang ld.lld rustc pahole aarch64-linux-gnu-gcc || exit 1
+
+# 分步构建
 cd ${BUILD_DIR}build_kernel/kernel_platform/common
-
-# 使用 Clang 和 Rust 构建内核
-info "开始构建内核"
-make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-Wno-error gki_defconfig all
-
+make O=out ARCH=arm64 gki_defconfig && \
+make -j$(nproc --all) \
+    LLVM=1 \
+    ARCH=arm64 \
+    CROSS_COMPILE=aarch64-linux-gnu- \
+    CC=clang \
+    LD=ld.lld \
+    O=out
 
 
 # 进入构建输出目录

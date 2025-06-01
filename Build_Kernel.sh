@@ -106,7 +106,9 @@ sudo mv ~/repo /usr/local/bin/repo
 
 # 初始化 repo 并同步
 info "初始化 repo 并同步..."
-mkdir -p ${BUILD_DIR}build_kernel && cd ${BUILD_DIR}build_kernel
+mkdir -p ${BUILD_DIR}build_kernel
+cd ~/build_oneplus_sm8750/build_kernel
+rm -rf .repo
 repo init -u ${XML_FEIL} --depth=1
 repo --trace sync -c -j$(nproc --all) --no-tags
 

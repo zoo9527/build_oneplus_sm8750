@@ -101,6 +101,11 @@ sudo apt install  -y zip
 # 安装 repo 工具
 info "安装 repo 工具并同步源码..."
 REPO_TMP=$(mktemp)
+REPO_DIR="$HOME/.repo"  # 动态获取当前用户的 .repo 目录
+if [ -d "$REPO_DIR" ]; then
+    info "检测到已存在的 repo 初始化，正在清理..."
+    rm -rf "$REPO_DIR"
+fi
 curl -fsSL https://storage.googleapis.com/git-repo-downloads/repo -o "$REPO_TMP" || {
     info "❌ 下载 repo 工具失败"
     exit 1

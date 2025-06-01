@@ -1,6 +1,6 @@
 # 一加13、13T、ACE 5 Pro本地编译
 ### 复刻时请不要更改项目名 否则将编译失败
-#### 该脚本转译自酷安@Futabawa，如有侵权请联系``qiudaoyu2888@gmail.com``删除
+#### 该项目转译自酷安@Futabawa工作流
 ## 使用方法<br>
 * `git clone https://github.com/showdo/build_oneplus_sm8750.git`<br>
 #### ⚠️注意：如果你想使用你复刻的项目进行编译请将上面链接中的``showdo``改成为你的github用户名<br>

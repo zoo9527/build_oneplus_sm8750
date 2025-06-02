@@ -359,4 +359,8 @@ info "内核包路径: $WIN_OUTPUT_DIR/SuKiSu_${KSU_VERSION}_${DEVICE_NAME}.zip"
 info "恢复kernel_workspace到repo同步后的状态..."
 cd "$WORKSPACE/kernel_workspace" || error "进入kernel_workspace失败"
 repo forall -c 'git reset --hard; git clean -fdx'
+
+# 清理非repo管理的多余目录和补丁
+find . -maxdepth 1 ! -name '.repo' ! -name 'kernel_platform' ! -name '.' -exec rm -rf {} +
+
 info "已恢复到repo同步后的状态"

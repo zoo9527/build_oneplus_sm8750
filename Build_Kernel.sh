@@ -134,6 +134,19 @@ sudo mv ~/repo /usr/local/bin/repo || error "repo安装失败"
 # 同步源码
 info "初始化repo并同步源码..."
 mkdir -p ${WORKSPACE}/kernel_workspace && cd ${WORKSPACE}/kernel_workspace || error "创建${WORKSPACE}/kernel_workspace失败"
+
+if [ ! -f ".repo/manifest.xml" ]; then
+    # 自动查找 manifests 目录下的 xml 文件并恢复软链接
+    manifest_file=$(ls .repo/manifests/*.xml | head -n1)
+    if [ -n "$manifest_file" ]; then
+        ln -sf "$manifest_file" .repo/manifest.xml
+        info "已自动恢复.repo/manifest.xml 软链接"
+    else
+        error "未找到可用的 manifest 文件，无法恢复 .repo/manifest.xml"
+        exit 1
+    fi
+fi
+# ...existing code...
 if [ ! -d ".repo" ]; then
     repo init -u https://github.com/HanKuCha/kernel_manifest.git -b refs/heads/oneplus/sm8750 -m "$REPO_MANIFEST" --depth=1 || error "repo初始化失败"
     repo --trace sync -c -j$(nproc --all) --no-tags || error "repo同步失败"

@@ -359,13 +359,18 @@ cp "$WORKSPACE/kernel_workspace/kernel_platform/common/out/arch/arm64/boot/Image
 cp "$WORKSPACE/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip" "$WIN_OUTPUT_DIR/"
 
 info "内核包路径: $WIN_OUTPUT_DIR/SuKiSu_${KSU_VERSION}_${DEVICE_NAME}.zip"
+# ...existing code...
 
 # 恢复kernel_workspace到repo同步后的状态
 info "恢复kernel_workspace到repo同步后的状态..."
 cd "$WORKSPACE/kernel_workspace" || error "进入kernel_workspace失败"
 repo forall -c 'git reset --hard; git clean -fdx'
 
-# 清理非repo管理的多余目录和补丁
-find . -maxdepth 1 ! -name '.repo' ! -name 'kernel_platform' ! -name '.' -exec rm -rf {} +
+# 只删除补丁和临时目录/文件，避免误删.repo等重要内容
+rm -rf susfs4ksu SukiSU_patch \
+    kernel_platform/common/50_add_susfs_in_gki-android15-6.6.patch \
+    kernel_platform/common/syscall_hooks.patch \
+    kernel_platform/common/lz4kd.patch
 
 info "已恢复到repo同步后的状态"
+# ...existing code...

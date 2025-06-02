@@ -137,7 +137,13 @@ else
     info "repo工具已安装，跳过安装"
 fi
 
-# 同步源码前清理未跟踪文件，避免repo sync失败
+# 进入源码目录
+cd ${WORKSPACE}/kernel_workspace
+
+# 清理所有未跟踪文件和目录（包括顶层）
+git clean -fdx
+
+# 对所有子仓库也执行清理
 repo forall -c 'git clean -fdx; git reset --hard'
 
 # 同步源码

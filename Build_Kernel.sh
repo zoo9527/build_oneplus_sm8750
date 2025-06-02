@@ -141,7 +141,10 @@ fi
 info "初始化repo并同步源码..."
 mkdir -p ${WORKSPACE}/kernel_workspace && cd ${WORKSPACE}/kernel_workspace || error "创建${WORKSPACE}/kernel_workspace失败"
 
-repo init -u https://github.com/HanKuCha/kernel_manifest.git -b refs/heads/oneplus/sm8750 -m "$REPO_MANIFEST" --depth=1 || error "repo初始化失败"
+if [ ! -d "${WORKSPACE}/kernel_workspace/kernel_platform" ]; then
+    repo init -u https://github.com/HanKuCha/kernel_manifest.git -b refs/heads/oneplus/sm8750 -m "$REPO_MANIFEST" --depth=1 || error "repo初始化失败"
+fi
+
 repo --trace sync -c -j$(nproc --all) --no-tags || error "repo同步失败"
 
 # 清理保护导出

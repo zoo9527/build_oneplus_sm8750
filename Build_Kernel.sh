@@ -120,8 +120,6 @@ if [ -z "$GIT_NAME" ] || [ -z "$GIT_EMAIL" ]; then
     git config --global user.email "sucisama2888@gmail.com"
 else
     info "Git 已配置："
-    info "用户名：$GIT_NAME"
-    info "邮箱：$GIT_EMAIL"
 fi
 
 # 安装repo工具（仅首次）

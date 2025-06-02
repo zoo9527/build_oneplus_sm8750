@@ -125,11 +125,15 @@ else
     info "邮箱：$GIT_EMAIL"
 fi
 
-# 安装repo工具
-info "安装repo工具..."
-curl -fsSL https://storage.googleapis.com/git-repo-downloads/repo > ~/repo || error "repo下载失败"
-chmod a+x ~/repo
-sudo mv ~/repo /usr/local/bin/repo || error "repo安装失败"
+# 安装repo工具（仅首次）
+if ! command -v repo >/dev/null 2>&1; then
+    info "安装repo工具..."
+    curl -fsSL https://storage.googleapis.com/git-repo-downloads/repo > ~/repo || error "repo下载失败"
+    chmod a+x ~/repo
+    sudo mv ~/repo /usr/local/bin/repo || error "repo安装失败"
+else
+    info "repo工具已安装，跳过安装"
+fi
 
 # 同步源码
 info "初始化repo并同步源码..."

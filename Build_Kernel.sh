@@ -134,8 +134,13 @@ sudo mv ~/repo /usr/local/bin/repo || error "repo安装失败"
 # 同步源码
 info "初始化repo并同步源码..."
 mkdir -p ${WORKSPACE}/kernel_workspace && cd ${WORKSPACE}/kernel_workspace || error "创建${WORKSPACE}/kernel_workspace失败"
-repo init -u https://github.com/HanKuCha/kernel_manifest.git -b refs/heads/oneplus/sm8750 -m "$REPO_MANIFEST" --depth=1 || error "repo初始化失败"
-repo --trace sync -c -j$(nproc --all) --no-tags || error "repo同步失败"
+if [ ! -d ".repo" ]; then
+    repo init -u https://github.com/HanKuCha/kernel_manifest.git -b refs/heads/oneplus/sm8750 -m "$REPO_MANIFEST" --depth=1 || error "repo初始化失败"
+    repo --trace sync -c -j$(nproc --all) --no-tags || error "repo同步失败"
+else
+    info "检测源码是否需要同步..."
+    repo --trace sync -c -j$(nproc --all) --no-tags || error "repo同步失败"
+fi
 
 # 清理保护导出
 rm -f kernel_platform/common/android/abi_gki_protected_exports_*

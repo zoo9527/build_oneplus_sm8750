@@ -84,9 +84,6 @@ else
     info "未安装 ccache，跳过初始化"
 fi
 
-# ccache 初始化标志文件
-CCACHE_INIT_FLAG="$CCACHE_DIR/.ccache_initialized"
-
 # 工作目录 - 按机型区分
 WORKSPACE="$HOME/kernel_${DEVICE_NAME}"
 mkdir -p "$WORKSPACE" || error "无法创建工作目录"
@@ -137,49 +134,87 @@ else
     info "repo工具已安装，跳过安装"
 fi
 
-# 进入源码目录
-cd ${WORKSPACE}/kernel_workspace
+# ==================== 新增功能：源码状态管理 ====================
+CLEAN_STATE_DIR="$WORKSPACE/clean_state"
+CLEAN_STATE_FLAG="$CLEAN_STATE_DIR/.clean_state_created"
 
-# 清理所有未跟踪文件和目录（包括顶层）
-git clean -fdx
+# 创建源码目录
+KERNEL_WORKSPACE="$WORKSPACE/kernel_workspace"
+mkdir -p "$KERNEL_WORKSPACE" || error "无法创建kernel_workspace目录"
+cd "$KERNEL_WORKSPACE" || error "无法进入kernel_workspace目录"
 
-# 对所有子仓库也执行清理
-repo forall -c 'git clean -fdx; git reset --hard'
-
-# 同步源码
-info "初始化repo并同步源码..."
-mkdir -p ${WORKSPACE}/kernel_workspace && cd ${WORKSPACE}/kernel_workspace || error "创建${WORKSPACE}/kernel_workspace失败"
-
-if [ ! -d "${WORKSPACE}/kernel_workspace/kernel_platform" ]; then
+# 检查是否已有源码
+if [ -d ".repo" ]; then
+    info "检测到已有源码，正在重置并同步最新代码..."
+    
+    # 保存当前修改状态（用于比较）
+    info "保存当前修改状态..."
+    repo forall -c 'git status --porcelain > /tmp/$$.repo_status; git diff > /tmp/$$.repo_diff'
+    
+    # 重置所有修改
+    info "重置本地修改..."
+    repo forall -c 'git reset --hard; git clean -fdx'
+    
+    # 同步最新代码
+    info "同步云端代码..."
+    repo --trace sync -c -j$(nproc --all) --no-tags || error "repo同步失败"
+    
+    # 检查是否有云端更新
+    info "检查云端更新..."
+    repo forall -c 'git fetch origin && git log --oneline HEAD..origin/$(git rev-parse --abbrev-ref HEAD) | wc -l > /tmp/$$.upstream_count'
+    
+    UPSTREAM_CHANGES=0
+    for count_file in /tmp/$$.upstream_count_*; do
+        count=$(cat $count_file)
+        UPSTREAM_CHANGES=$((UPSTREAM_CHANGES + count))
+    done
+    
+    if [ $UPSTREAM_CHANGES -gt 0 ]; then
+        info "检测到 $UPSTREAM_CHANGES 个云端更新，已同步"
+    else
+        info "没有云端更新"
+    fi
+    
+    # 清理临时文件
+    rm -f /tmp/$$.*
+else
+    # 初始化源码
+    info "初始化repo并同步源码..."
     repo init -u https://github.com/HanKuCha/kernel_manifest.git -b refs/heads/oneplus/sm8750 -m "$REPO_MANIFEST" --depth=1 || error "repo初始化失败"
+    repo --trace sync -c -j$(nproc --all) --no-tags || error "repo同步失败"
+    
+    # 创建干净状态快照
+    info "创建干净状态快照..."
+    mkdir -p "$CLEAN_STATE_DIR" || error "无法创建干净状态目录"
+    repo forall -c 'mkdir -p $CLEAN_STATE_DIR/$REPO_PATH && cp -a . $CLEAN_STATE_DIR/$REPO_PATH/'
+    touch "$CLEAN_STATE_FLAG"
+    info "干净状态快照已创建"
 fi
-# 检查manifest.xml是否存在，不存在就init
-if [ ! -f ".repo/manifest.xml" ]; then
-    repo init -u https://github.com/HanKuCha/kernel_manifest.git -b refs/heads/oneplus/sm8750 -m "$REPO_MANIFEST" --depth=1 || error "repo初始化失败"
-fi
-repo --trace sync -c -j$(nproc --all) --no-tags || error "repo同步失败"
+
+# ==================== 核心构建步骤 ====================
 
 # 清理保护导出
+info "清理保护导出文件..."
 rm -f kernel_platform/common/android/abi_gki_protected_exports_*
 rm -f kernel_platform/msm-kernel/android/abi_gki_protected_exports_*
 
 # 设置SukiSU
 info "设置SukiSU..."
-cd ${WORKSPACE}/kernel_workspace/kernel_platform || error "进入kernel_platform失败"
+cd kernel_platform || error "进入kernel_platform失败"
 curl -LSs "https://raw.githubusercontent.com/ShirkNeko/SukiSU-Ultra/main/kernel/setup.sh" | bash -s susfs-dev || error "SukiSU设置失败"
 
-cd ${WORKSPACE}/kernel_workspace/kernel_platform/KernelSU || error "进入KernelSU目录失败"
+cd KernelSU || error "进入KernelSU目录失败"
 KSU_VERSION=$(expr $(/usr/bin/git rev-list --count main) "+" 10606)
 export KSU_VERSION=$KSU_VERSION
 sed -i "s/DKSU_VERSION=12800/DKSU_VERSION=${KSU_VERSION}/" kernel/Makefile || error "修改KernelSU版本失败"
 
 # 设置susfs
 info "设置susfs..."
-cd "$WORKSPACE/kernel_workspace" || error "返回工作目录失败"
-git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android15-6.6 || error "克隆susfs4ksu失败"
-git clone https://github.com/ShirkNeko/SukiSU_patch.git || error "克隆SukiSU_patch失败"
+cd "$KERNEL_WORKSPACE" || error "返回工作目录失败"
+git clone -q https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android15-6.6 || info "susfs4ksu已存在或克隆失败"
+git clone -q https://github.com/ShirkNeko/SukiSU_patch.git || info "SukiSU_patch已存在或克隆失败"
 
-cd ${WORKSPACE}/kernel_workspace/kernel_platform || error "进入kernel_platform失败"
+cd kernel_platform || error "进入kernel_platform失败"
 cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-android15-6.6.patch ./common/
 cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/
 cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
@@ -191,12 +226,12 @@ cp -r ../SukiSU_patch/other/zram/lz4k/crypto/* ./common/crypto
 cp -r ../SukiSU_patch/other/zram/lz4k_oplus ./common/lib/
 
 # 应用补丁
-cd ${WORKSPACE}/kernel_workspace/kernel_platform/common || error "进入common目录失败"
+cd common || error "进入common目录失败"
 sed -i 's/-32,12 +32,38/-32,11 +32,37/g' 50_add_susfs_in_gki-android15-6.6.patch
 sed -i '/#include <trace\/hooks\/fs.h>/d' 50_add_susfs_in_gki-android15-6.6.patch
 
 patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || info "SUSFS补丁应用可能有警告"
-cp ${WORKSPACE}/kernel_workspace/SukiSU_patch/hooks/syscall_hooks.patch ./
+cp ../SukiSU_patch/hooks/syscall_hooks.patch ./
 patch -p1 -F 3 < syscall_hooks.patch || info "syscall_hooks补丁应用可能有警告"
 
 # 应用HMBird GKI补丁
@@ -281,15 +316,15 @@ fi
 # 应用lz4kd补丁
 if [ "$ENABLE_LZ4KD" = true ]; then
     info "应用lz4kd补丁..."
-    cd ${WORKSPACE}/kernel_workspace/kernel_platform/common || error "进入common目录失败"
-    cp ${WORKSPACE}/kernel_workspace/SukiSU_patch/other/zram/zram_patch/6.6/lz4kd.patch ./
+    cd ../.. || error "进入common目录失败"
+    cp ../../SukiSU_patch/other/zram/zram_patch/6.6/lz4kd.patch ./
     patch -p1 -F 3 < lz4kd.patch || info "lz4kd补丁应用可能有警告"
-    cd ${WORKSPACE}/kernel_workspace/kernel_platform || error "返回上级目录失败"
+    cd .. || error "返回上级目录失败"
 fi
 
 # 添加SUSFS配置
 info "添加SUSFS配置..."
-cd ${WORKSPACE}/kernel_workspace/kernel_platform/common/arch/arm64/configs || error "进入configs目录失败"
+cd common/arch/arm64/configs || error "进入configs目录失败"
 echo -e "CONFIG_KSU=y
 CONFIG_KSU_SUSFS_SUS_SU=n
 CONFIG_KSU_MANUAL_HOOK=y
@@ -314,7 +349,7 @@ CONFIG_CRYPTO_LZ4KD=y
 CONFIG_CRYPTO_842=y
 CONFIG_LOCALVERSION_AUTO=n" >> gki_defconfig
 
-cd ${WORKSPACE}/kernel_workspace/kernel_platform/ || error "返回kernel_platform目录失败"
+cd ../../../../ || error "返回kernel_platform目录失败"
 
 # 移除check_defconfig
 sudo sed -i 's/check_defconfig//' common/build.config.gki || error "修改build.config.gki失败"
@@ -334,10 +369,10 @@ sudo sed -i "s/-4k/${KERNEL_SUFFIX}/g" common/arch/arm64/configs/gki_defconfig |
 # 构建内核
 info "开始构建内核..."
 export KBUILD_BUILD_TIMESTAMP="$KERNEL_TIME"
-export PATH="$WORKSPACE/kernel_workspace/kernel_platform/prebuilts/clang/host/linux-x86/clang-r510928/bin:$PATH"
+export PATH="$KERNEL_WORKSPACE/kernel_platform/prebuilts/clang/host/linux-x86/clang-r510928/bin:$PATH"
 export PATH="/usr/lib/ccache:$PATH"
 
-cd ${WORKSPACE}/kernel_workspace/kernel_platform/common || error "进入common目录失败"
+cd common || error "进入common目录失败"
 make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
     RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
     PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
@@ -345,7 +380,7 @@ make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clan
 
 # 应用Linux补丁
 info "应用Linux补丁..."
-cd ${WORKSPACE}/kernel_workspace/kernel_platform/common//out/arch/arm64/boot || error "进入boot目录失败"
+cd out/arch/arm64/boot || error "进入boot目录失败"
 curl -LO https://github.com/ShirkNeko/SukiSU_KernelPatch_patch/releases/download/0.11-beta/patch_linux || error "下载patch_linux失败"
 chmod +x patch_linux
 ./patch_linux || error "应用patch_linux失败"
@@ -355,10 +390,10 @@ mv oImage Image || error "重命名Image失败"
 # 创建AnyKernel3包
 info "创建AnyKernel3包..."
 cd "$WORKSPACE" || error "返回工作目录失败"
-git clone https://github.com/Kernel-SU/AnyKernel3.git --depth=1 || error "克隆AnyKernel3失败"
+git clone -q https://github.com/Kernel-SU/AnyKernel3.git --depth=1 || info "AnyKernel3已存在"
 rm -rf ./AnyKernel3/.git
 rm -f ./AnyKernel3/push.sh
-cp ${WORKSPACE}/kernel_workspace/kernel_platform/common/out/arch/arm64/boot/Image ./AnyKernel3/ || error "复制Image失败"
+cp "$KERNEL_WORKSPACE/kernel_platform/common/out/arch/arm64/boot/Image" ./AnyKernel3/ || error "复制Image失败"
 
 # 打包
 cd AnyKernel3 || error "进入AnyKernel3目录失败"
@@ -370,22 +405,29 @@ info "构建完成! 内核包路径: $WORKSPACE/AnyKernel3_${KSU_VERSION}_${DEVI
 WIN_OUTPUT_DIR="/mnt/c/Kernel_Build/${DEVICE_NAME}/"
 mkdir -p "$WIN_OUTPUT_DIR" || info "无法创建Windows目录，可能未挂载C盘，将保存到Linux目录"
 
-
 # 复制Image和AnyKernel3包
-cp "$WORKSPACE/kernel_workspace/kernel_platform/common/out/arch/arm64/boot/Image" "$WIN_OUTPUT_DIR/"
+cp "$KERNEL_WORKSPACE/kernel_platform/common/out/arch/arm64/boot/Image" "$WIN_OUTPUT_DIR/"
 cp "$WORKSPACE/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip" "$WIN_OUTPUT_DIR/"
 
 info "内核包路径: $WIN_OUTPUT_DIR/SuKiSu_${KSU_VERSION}_${DEVICE_NAME}.zip"
 
-# 恢复kernel_workspace到repo同步后的状态
-info "恢复kernel_workspace到repo同步后的状态..."
-cd "$WORKSPACE/kernel_workspace" || error "进入kernel_workspace失败"
-repo forall -c 'git reset --hard; git clean -fdx'
+# ==================== 新增：恢复到干净状态 ====================
+info "正在恢复到repo同步后的状态..."
 
-# 只删除补丁和临时目录/文件，避免误删.repo等重要内容
-rm -rf susfs4ksu SukiSU_patch \
-    kernel_platform/common/50_add_susfs_in_gki-android15-6.6.patch \
-    kernel_platform/common/syscall_hooks.patch \
-    kernel_platform/common/lz4kd.patch
+# 恢复到干净状态
+if [ -f "$CLEAN_STATE_FLAG" ]; then
+    info "从快照恢复干净状态..."
+    cd "$KERNEL_WORKSPACE" || error "进入kernel_workspace失败"
+    repo forall -c 'rm -rf $REPO_PATH/*'
+    repo forall -c 'cp -a $CLEAN_STATE_DIR/$REPO_PATH/* $REPO_PATH/'
+    info "已恢复到repo同步后的状态"
+else
+    info "首次编译，创建干净状态快照..."
+    mkdir -p "$CLEAN_STATE_DIR" || error "无法创建干净状态目录"
+    cd "$KERNEL_WORKSPACE" || error "进入kernel_workspace失败"
+    repo forall -c 'mkdir -p $CLEAN_STATE_DIR/$REPO_PATH && cp -a . $CLEAN_STATE_DIR/$REPO_PATH/'
+    touch "$CLEAN_STATE_FLAG"
+    info "干净状态快照已创建"
+fi
 
-info "已恢复到repo同步后的状态"
+info "所有操作完成，源码已恢复到初始状态"

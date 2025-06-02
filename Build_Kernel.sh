@@ -352,20 +352,9 @@ mkdir -p "$WIN_OUTPUT_DIR" || info "无法创建Windows目录，可能未挂载C
 cp "$WORKSPACE/kernel_workspace/kernel_platform/common/out/arch/arm64/boot/Image" "$WIN_OUTPUT_DIR/"
 cp "$WORKSPACE/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip" "$WIN_OUTPUT_DIR/"
 
-# 在编译完成并复制Image和AnyKernel3包后，强制清理所有临时文件和修改：
-info "正在彻底重置工作目录到初始同步状态..."
-
-# 1. 删除所有手动下载的临时文件（susfs、补丁等）
-rm -rf "$WORKSPACE/kernel_workspace/susfs4ksu" \
-       "$WORKSPACE/kernel_workspace/SukiSU_patch" \
-       "$WORKSPACE/AnyKernel3"
-
-# 2. 强制同步所有仓库（丢弃所有Git修改）
-cd "$WORKSPACE/kernel_workspace" && repo sync -d --force-sync -c -j$(nproc --all) --no-tags
-
-# 3. 验证目录结构（应该只剩下repo初始化的内容）
-info "当前工作目录状态："
-ls -l "$WORKSPACE/kernel_workspace"
-
-info "已完全重置！下次编译将从零开始（重新下载susfs、重新打补丁等）。"
+info "执行深度清理..."
+cd "$WORKSPACE/kernel_workspace" 2>/dev/null && 
+repo forall -c 'git reset --hard; git clean -fd'  # 重置所有子仓库
+rm -rf "$WORKSPACE/kernel_workspace/susfs4ksu" \  # 删除外部补丁
+       "$WORKSPACE/kernel_workspace/SukiSU_patch" # 删除外部补丁
 info "内核包路径: $WIN_OUTPUT_DIR/SuKiSu_${KSU_VERSION}_${DEVICE_NAME}.zip"

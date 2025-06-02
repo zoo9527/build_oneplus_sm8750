@@ -137,6 +137,9 @@ else
     info "repo工具已安装，跳过安装"
 fi
 
+# 同步源码前清理未跟踪文件，避免repo sync失败
+repo forall -c 'git clean -fdx; git reset --hard'
+
 # 同步源码
 info "初始化repo并同步源码..."
 mkdir -p ${WORKSPACE}/kernel_workspace && cd ${WORKSPACE}/kernel_workspace || error "创建${WORKSPACE}/kernel_workspace失败"

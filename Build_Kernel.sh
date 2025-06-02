@@ -134,7 +134,7 @@ else
     info "repo工具已安装，跳过安装"
 fi
 
-# ==================== 新增功能：源码状态管理 ====================
+# ==================== 源码状态管理 ====================
 CLEAN_STATE_DIR="$WORKSPACE/clean_state"
 CLEAN_STATE_FLAG="$CLEAN_STATE_DIR/.clean_state_created"
 
@@ -231,7 +231,7 @@ sed -i 's/-32,12 +32,38/-32,11 +32,37/g' 50_add_susfs_in_gki-android15-6.6.patch
 sed -i '/#include <trace\/hooks\/fs.h>/d' 50_add_susfs_in_gki-android15-6.6.patch
 
 patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || info "SUSFS补丁应用可能有警告"
-cp ../SukiSU_patch/hooks/syscall_hooks.patch ./
+cp "$KERNEL_WORKSPACE/SukiSU_patch/hooks/syscall_hooks.patch" ./ || error "复制syscall_hooks.patch失败"
 patch -p1 -F 3 < syscall_hooks.patch || info "syscall_hooks补丁应用可能有警告"
 
 # 应用HMBird GKI补丁
@@ -313,18 +313,20 @@ if ! grep -q "hmbird_patch.o" Makefile; then
     echo "obj-y += hmbird_patch.o" >> Makefile
 fi
 
+# 返回common目录
+cd .. || error "返回common目录失败"
+
 # 应用lz4kd补丁
 if [ "$ENABLE_LZ4KD" = true ]; then
     info "应用lz4kd补丁..."
-    cd ../.. || error "进入common目录失败"
-    cp ../../SukiSU_patch/other/zram/zram_patch/6.6/lz4kd.patch ./
+    # 使用绝对路径确保正确找到补丁文件
+    cp "$KERNEL_WORKSPACE/SukiSU_patch/other/zram/zram_patch/6.6/lz4kd.patch" ./ || error "复制lz4kd补丁失败"
     patch -p1 -F 3 < lz4kd.patch || info "lz4kd补丁应用可能有警告"
-    cd .. || error "返回上级目录失败"
 fi
 
 # 添加SUSFS配置
 info "添加SUSFS配置..."
-cd common/arch/arm64/configs || error "进入configs目录失败"
+cd arch/arm64/configs || error "进入configs目录失败"
 echo -e "CONFIG_KSU=y
 CONFIG_KSU_SUSFS_SUS_SU=n
 CONFIG_KSU_MANUAL_HOOK=y
@@ -349,7 +351,8 @@ CONFIG_CRYPTO_LZ4KD=y
 CONFIG_CRYPTO_842=y
 CONFIG_LOCALVERSION_AUTO=n" >> gki_defconfig
 
-cd ../../../../ || error "返回kernel_platform目录失败"
+# 返回kernel_platform目录
+cd $KERNEL_WORKSPACE/kernel_platform || error "返回kernel_platform目录失败"
 
 # 移除check_defconfig
 sudo sed -i 's/check_defconfig//' common/build.config.gki || error "修改build.config.gki失败"

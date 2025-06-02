@@ -348,13 +348,15 @@ info "构建完成! 内核包路径: $WORKSPACE/AnyKernel3_${KSU_VERSION}_${DEVI
 WIN_OUTPUT_DIR="/mnt/c/Kernel_Build/${DEVICE_NAME}/"
 mkdir -p "$WIN_OUTPUT_DIR" || info "无法创建Windows目录，可能未挂载C盘，将保存到Linux目录"
 
+
 # 复制Image和AnyKernel3包
 cp "$WORKSPACE/kernel_workspace/kernel_platform/common/out/arch/arm64/boot/Image" "$WIN_OUTPUT_DIR/"
 cp "$WORKSPACE/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip" "$WIN_OUTPUT_DIR/"
 
-info "执行深度清理..."
-cd "$WORKSPACE/kernel_workspace" 2>/dev/null && 
-repo forall -c 'git reset --hard; git clean -fd'  # 重置所有子仓库
-rm -rf "$WORKSPACE/kernel_workspace/susfs4ksu" \  # 删除外部补丁
-       "$WORKSPACE/kernel_workspace/SukiSU_patch" # 删除外部补丁
 info "内核包路径: $WIN_OUTPUT_DIR/SuKiSu_${KSU_VERSION}_${DEVICE_NAME}.zip"
+
+# 恢复kernel_workspace到repo同步后的状态
+info "恢复kernel_workspace到repo同步后的状态..."
+cd "$WORKSPACE/kernel_workspace" || error "进入kernel_workspace失败"
+repo forall -c 'git reset --hard; git clean -fdx'
+info "已恢复到repo同步后的状态"

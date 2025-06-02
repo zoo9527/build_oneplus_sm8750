@@ -16,29 +16,31 @@ error() {
 
 # 参数设置
 KERNEL_SUFFIX="-android15-8-g013ec21bba94-abogki383916444-4k"
-KERNEL_TIME="Wed Dec 4 02:11:46 UTC 2024"
 ENABLE_KPM=true
 ENABLE_LZ4KD=true
 
 # 机型选择
-echo "请选择要编译的机型："
-echo "1. 一加 Ace 5 Pro"
-echo "2. 一加 13"
-echo "3. 一加 13T"
+info "请选择要编译的机型："
+info "1. 一加 Ace 5 Pro"
+info "2. 一加 13"
+info "3. 一加 13T"
 read -p "输入选择 [1-3]: " device_choice
 
 case $device_choice in
     1)
         DEVICE_NAME="oneplus_ace5_pro"
         REPO_MANIFEST="JiuGeFaCai_oneplus_ace5_pro_v.xml"
+        KERNEL_TIME="Wed Dec 4 02:11:46 UTC 2024"
         ;;
     2)
         DEVICE_NAME="oneplus_13"
         REPO_MANIFEST="JiuGeFaCai_oneplus_13_v.xml"
+        KERNEL_TIME="Tue Dec 17 23:36:49 UTC 2024"
         ;;
     3)
         DEVICE_NAME="oneplus_13t"
         REPO_MANIFEST="oneplus_13t.xml"
+        KERNEL_TIME="Tue Dec 17 23:36:49 UTC 2024"
         ;;
     *)
         error "无效的选择，请输入1-3之间的数字"
@@ -139,25 +141,8 @@ fi
 info "初始化repo并同步源码..."
 mkdir -p ${WORKSPACE}/kernel_workspace && cd ${WORKSPACE}/kernel_workspace || error "创建${WORKSPACE}/kernel_workspace失败"
 
-if [ ! -d ".repo" ]; then
-    # 第一次运行，初始化repo
-    repo init -u https://github.com/HanKuCha/kernel_manifest.git -b refs/heads/oneplus/sm8750 -m "$REPO_MANIFEST" --depth=1 || error "repo初始化失败"
-    repo --trace sync -c -j$(nproc --all) --no-tags || error "repo同步失败"
-else
-    # .repo已存在，检查manifest.xml软链接
-    if [ ! -f ".repo/manifest.xml" ]; then
-        manifest_file=$(ls .repo/manifests/*.xml | head -n1)
-        if [ -n "$manifest_file" ]; then
-            ln -sf "$manifest_file" .repo/manifest.xml
-            info "已自动恢复.repo/manifest.xml 软链接"
-        else
-            error "未找到可用的 manifest 文件，无法恢复 .repo/manifest.xml"
-            exit 1
-        fi
-    fi
-    info "检测源码是否需要同步..."
-    repo --trace sync -c -j$(nproc --all) --no-tags || error "repo同步失败"
-fi
+repo init -u https://github.com/HanKuCha/kernel_manifest.git -b refs/heads/oneplus/sm8750 -m "$REPO_MANIFEST" --depth=1 || error "repo初始化失败"
+repo --trace sync -c -j$(nproc --all) --no-tags || error "repo同步失败"
 
 # 清理保护导出
 rm -f kernel_platform/common/android/abi_gki_protected_exports_*

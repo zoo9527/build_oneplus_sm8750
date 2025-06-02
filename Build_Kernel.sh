@@ -134,62 +134,19 @@ else
     info "repo工具已安装，跳过安装"
 fi
 
-# ==================== 源码状态管理 ====================
-CLEAN_STATE_DIR="$WORKSPACE/clean_state"
-CLEAN_STATE_FLAG="$CLEAN_STATE_DIR/.clean_state_created"
+# ==================== 源码管理 ====================
 
 # 创建源码目录
 KERNEL_WORKSPACE="$WORKSPACE/kernel_workspace"
+
 mkdir -p "$KERNEL_WORKSPACE" || error "无法创建kernel_workspace目录"
+
 cd "$KERNEL_WORKSPACE" || error "无法进入kernel_workspace目录"
 
-# 检查是否已有源码
-if [ -d ".repo" ]; then
-    info "检测到已有源码，正在重置并同步最新代码..."
-    
-    # 保存当前修改状态（用于比较）
-    info "保存当前修改状态..."
-    repo forall -c 'git status --porcelain > /tmp/$$.repo_status; git diff > /tmp/$$.repo_diff'
-    
-    # 重置所有修改
-    info "重置本地修改..."
-    repo forall -c 'git reset --hard; git clean -fdx'
-    
-    # 同步最新代码
-    info "同步云端代码..."
-    repo --trace sync -c -j$(nproc --all) --no-tags || error "repo同步失败"
-    
-    # 检查是否有云端更新
-    info "检查云端更新..."
-    repo forall -c 'git fetch origin && git log --oneline HEAD..origin/$(git rev-parse --abbrev-ref HEAD) | wc -l > /tmp/$$.upstream_count'
-    
-    UPSTREAM_CHANGES=0
-    for count_file in /tmp/$$.upstream_count_*; do
-        count=$(cat $count_file)
-        UPSTREAM_CHANGES=$((UPSTREAM_CHANGES + count))
-    done
-    
-    if [ $UPSTREAM_CHANGES -gt 0 ]; then
-        info "检测到 $UPSTREAM_CHANGES 个云端更新，已同步"
-    else
-        info "没有云端更新"
-    fi
-    
-    # 清理临时文件
-    rm -f /tmp/$$.*
-else
-    # 初始化源码
-    info "初始化repo并同步源码..."
-    repo init -u https://github.com/HanKuCha/kernel_manifest.git -b refs/heads/oneplus/sm8750 -m "$REPO_MANIFEST" --depth=1 || error "repo初始化失败"
-    repo --trace sync -c -j$(nproc --all) --no-tags || error "repo同步失败"
-    
-    # 创建干净状态快照
-    info "创建干净状态快照..."
-    mkdir -p "$CLEAN_STATE_DIR" || error "无法创建干净状态目录"
-    repo forall -c 'mkdir -p $CLEAN_STATE_DIR/$REPO_PATH && cp -a . $CLEAN_STATE_DIR/$REPO_PATH/'
-    touch "$CLEAN_STATE_FLAG"
-    info "干净状态快照已创建"
-fi
+# 初始化源码
+info "初始化repo并同步源码..."
+repo init -u https://github.com/HanKuCha/kernel_manifest.git -b refs/heads/oneplus/sm8750 -m "$REPO_MANIFEST" --depth=1 || error "repo初始化失败"
+repo --trace sync -c -j$(nproc --all) --no-tags || error "repo同步失败"
 
 # ==================== 核心构建步骤 ====================
 
@@ -355,7 +312,7 @@ CONFIG_LOCALVERSION_AUTO=n" >> gki_defconfig
 cd $KERNEL_WORKSPACE/kernel_platform || error "返回kernel_platform目录失败"
 
 # 移除check_defconfig
-sudo sed -i 's/check_defconfig//' common/build.config.gki || error "修改build.config.gki失败"
+sudo sed -i 's/check_defconfig//' $KERNEL_WORKSPACE/kernel_platform/common/build.config.gki || error "修改build.config.gki失败"
 
 # 添加KPM配置
 if [ "$ENABLE_KPM" = true ]; then
@@ -402,8 +359,6 @@ cp "$KERNEL_WORKSPACE/kernel_platform/common/out/arch/arm64/boot/Image" ./AnyKer
 cd AnyKernel3 || error "进入AnyKernel3目录失败"
 zip -r "../AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip" ./* || error "打包失败"
 
-info "构建完成! 内核包路径: $WORKSPACE/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip"
-
 # 创建C盘输出目录（通过WSL访问Windows的C盘）
 WIN_OUTPUT_DIR="/mnt/c/Kernel_Build/${DEVICE_NAME}/"
 mkdir -p "$WIN_OUTPUT_DIR" || info "无法创建Windows目录，可能未挂载C盘，将保存到Linux目录"
@@ -412,25 +367,9 @@ mkdir -p "$WIN_OUTPUT_DIR" || info "无法创建Windows目录，可能未挂载C
 cp "$KERNEL_WORKSPACE/kernel_platform/common/out/arch/arm64/boot/Image" "$WIN_OUTPUT_DIR/"
 cp "$WORKSPACE/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip" "$WIN_OUTPUT_DIR/"
 
-info "内核包路径: $WIN_OUTPUT_DIR/SuKiSu_${KSU_VERSION}_${DEVICE_NAME}.zip"
-
-# ==================== 新增：恢复到干净状态 ====================
-info "正在恢复到repo同步后的状态..."
-
-# 恢复到干净状态
-if [ -f "$CLEAN_STATE_FLAG" ]; then
-    info "从快照恢复干净状态..."
-    cd "$KERNEL_WORKSPACE" || error "进入kernel_workspace失败"
-    repo forall -c 'rm -rf $REPO_PATH/*'
-    repo forall -c 'cp -a $CLEAN_STATE_DIR/$REPO_PATH/* $REPO_PATH/'
-    info "已恢复到repo同步后的状态"
-else
-    info "首次编译，创建干净状态快照..."
-    mkdir -p "$CLEAN_STATE_DIR" || error "无法创建干净状态目录"
-    cd "$KERNEL_WORKSPACE" || error "进入kernel_workspace失败"
-    repo forall -c 'mkdir -p $CLEAN_STATE_DIR/$REPO_PATH && cp -a . $CLEAN_STATE_DIR/$REPO_PATH/'
-    touch "$CLEAN_STATE_FLAG"
-    info "干净状态快照已创建"
-fi
-
-info "所有操作完成，源码已恢复到初始状态"
+info "内核包路径: C:/Kernel_Build/${DEVICE_NAME}/SuKiSu_${KSU_VERSION}_${DEVICE_NAME}.zip"
+info "Image路径: C:/Kernel_Build/${DEVICE_NAME}/Image"
+info "请在C盘目录中查找内核包和Image文件。"
+info "清理本次构建的所有文件..."
+sudo rm -rf "$WORKSPACE/kernel_workspace" || info "无法删除工作目录，可能未创建"
+info "清理完成！下次运行脚本将重新拉取源码并构建内核。"

@@ -2,7 +2,7 @@
 
 [![GitHub](https://img.shields.io/badge/-GitHub_Repo-181717?logo=github&logoColor=white&style=flat-square)](https://github.com/showdo/build_oneplus_sm8750)
 [![Telegram](https://img.shields.io/badge/Telegram-Channel-blue.svg?logo=telegram)](https://t.me/qdykernel)
-[![Coolapk|Homepage](https://img.shields.io/badge/CoolApk-Homepage-3DDC84?style=flat-square&logo=android&logoColor=white)](http://www.coolapk.com/u/1624571)
+[![Coolapk|Homepage](https://img.shields.io/badge/CoolApk|Homepage-3DDC84?style=flat-square&logo=android&logoColor=white)](http://www.coolapk.com/u/1624571)
 [![OnePlus Kernel Source](https://img.shields.io/badge/OnePlus_Kernel_Source-EB0029?logo=oneplus&logoColor=white&style=flat-square)](https://github.com/OnePlusOSS/kernel_manifest)
 
 ### Please DO NOT change the project name when forking, otherwise the build will fail.

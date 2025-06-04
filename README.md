@@ -1,6 +1,6 @@
 # 一加13、13T、ACE 5 Pro本地编译
 [![GitHub](https://img.shields.io/badge/-GitHub-181717?logo=github&logoColor=white&style=flat-square)](https://github.com/showdo/build_oneplus_sm8750)
-[![Channel](https://img.shields.io/badge/Telegram-频道-blue.svg?logo=telegram)](https://t.me/qdykernel)[![酷安|主页](https://img.shields.io/badge/酷安%7C主页-3DDC84?style=flat-square&logo=android&logoColor=white)](http://www.coolapk.com/u/1624571)
+[![Channel](https://img.shields.io/badge/Telegram-频道-blue.svg?logo=telegram)] (https://t.me/qdykernel)[![酷安|主页](https://img.shields.io/badge/酷安%7C主页-3DDC84?style=flat-square&logo=android&logoColor=white)](http://www.coolapk.com/u/1624571)
 [![一加开源地址](https://img.shields.io/badge/一加%20内核%20开源地址-EB0029?logo=oneplus&logoColor=white&style=flat-square)](https://github.com/OnePlusOSS/kernel_manifest)
 ### 复刻时请不要更改项目名 否则将编译失败
 #### 作者：TG频道T 一加13、13T、ACE 5 Pro本地编译

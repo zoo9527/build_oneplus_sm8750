@@ -1,6 +1,5 @@
 # 一加13、13T、ACE 5 Pro本地编译
-[![GitHub](https://img.shields.io/badge/-GitHub-181717?logo=github&logoColor=white&style=flat-square)
-](https://github.com/showdo/build_oneplus_sm8750) [![Channel](https://img.shields.io/badge/Follow-Telegram-blue.svg?logo=telegram)](https://t.me/qdykernel) [![OnePlus Kernel Manifest](https://img.shields.io/badge/OnePlus%20Kernel%20Manifest-EB0029?logo=oneplus&logoColor=white&style=flat-square)](https://github.com/OnePlusOSS/kernel_manifest)
+[🐙 GitHub](https://github.com/showdo)](https://github.com/showdo/build_oneplus_sm8750) [![Channel](https://img.shields.io/badge/Follow-Telegram-blue.svg?logo=telegram)](https://t.me/qdykernel) [![OnePlus Kernel Manifest](https://img.shields.io/badge/OnePlus%20Kernel%20Manifest-EB0029?logo=oneplus&logoColor=white&style=flat-square)](https://github.com/OnePlusOSS/kernel_manifest)
 ### 复刻时请不要更改项目名 否则将编译失败
 #### 作者：TG频道T 一加13、13T、ACE 5 Pro本地编译
 ### 复刻时请不要更改项目名 否则将编译失败

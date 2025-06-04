@@ -3,7 +3,7 @@
 [![Channel](https://img.shields.io/badge/Follow-Telegram-blue.svg?logo=telegram)](https://t.me/qdykernel) [![OnePlus Kernel Manifest](https://img.shields.io/badge/OnePlus%20Kernel%20Manifest-EB0029?logo=oneplus&logoColor=white&style=flat-square)](https://github.com/OnePlusOSS/kernel_manifest)
 ### 复刻时请不要更改项目名 否则将编译失败
 #### 作者：TG频道T 一加13、13T、ACE 5 Pro本地编译
-### 复刻时请不要更改项目名 否则将编译失败
+### 复刻时如更改项目名 则下方``使用方法``中的``build_oneplus_sm8750``改成你修改后的仓库名
 #### 该项目转译自酷安@Futabawa工作流
 ## 使用方法<br>
 * `git clone https://github.com/showdo/build_oneplus_sm8750.git`<br>

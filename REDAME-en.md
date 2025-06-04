@@ -7,8 +7,6 @@
 
 ### Please DO NOT change the project name when forking, otherwise the build will fail.
 
-#### Author: TG Channel T — Local build for OnePlus 13, 13T, ACE 5 Pro
-
 ### If you change the project name when forking, please update the repository name in the usage instructions below by replacing `build_oneplus_sm8750` with your new repo name.
 
 #### This project workflow is ported from Coolapk user @Futabawa.

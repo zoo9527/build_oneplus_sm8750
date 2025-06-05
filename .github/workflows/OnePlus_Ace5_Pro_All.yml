@@ -11,7 +11,7 @@ on:
        required: true
        default: 'Wed Dec 4 02:11:46 UTC 2024'
       suki_branch:
-        description: "选择SukiSU分支(Stable分支=稳定版, Dev分支=测试版)"
+        description: "选择SukiSU分支(Stable=稳定版, Dev=测试版)"
         required: true
         default: 'stable'
         type: choice

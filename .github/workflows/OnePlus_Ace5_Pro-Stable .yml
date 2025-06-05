@@ -25,6 +25,14 @@ on:
        required: false
        default: true
        type: boolean
+      suki_branch:
+        description: "请选择要编译的SukiSU分支 (Stable分支=稳定版, Dev分支=测试版)"
+        required: true
+        default: 'stable'
+        type: choice
+        options:
+          - stable
+          - dev
       
        
 

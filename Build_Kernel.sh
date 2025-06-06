@@ -402,7 +402,7 @@ mkdir -p "$WIN_OUTPUT_DIR" || info "无法创建Windows目录，可能未挂载C
 
 # 复制Image和AnyKernel3包
 cp "$KERNEL_WORKSPACE/kernel_platform/common/out/arch/arm64/boot/Image" "$WIN_OUTPUT_DIR/"
-cp "$WORKSPACE/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu_${SUKI_BRANCH}.zip" "$WIN_OUTPUT_DIR/"
+cp "$WORKSPACE/AnyKernel3/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu_${SUKI_BRANCH}.zip" "$WIN_OUTPUT_DIR/"
 
 info "内核包路径: C:/Kernel_Build/${DEVICE_NAME}/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu_${SUKI_BRANCH}.zip.zip"
 info "Image路径: C:/Kernel_Build/${DEVICE_NAME}/Image"

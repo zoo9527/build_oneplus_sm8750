@@ -23,7 +23,7 @@ ENABLE_LZ4KD=true
 info "请选择要编译的机型："
 info "1. 一加 Ace 5 Pro"
 info "2. 一加 13"
-info "3.❌ 一加 13T（暂时会报错请不要使用）"
+info "3.一加 13T"
 read -p "输入选择 [1-3]: " device_choice
 
 case $device_choice in
@@ -196,7 +196,8 @@ cp -r ../SukiSU_patch/other/zram/lz4k/include/linux/* ./common/include/linux
 cp -r ../SukiSU_patch/other/zram/lz4k/lib/* ./common/lib
 cp -r ../SukiSU_patch/other/zram/lz4k/crypto/* ./common/crypto
 cp -r ../SukiSU_patch/other/zram/lz4k_oplus ./common/lib/
-cd common || { echo "进入common目录失败"; exit 1; }
+
+cd $KERNEL_WORKSPACE/kernel_platform/common || { echo "进入common目录失败"; exit 1; }
 
 
 # 判断当前编译机型是否为一加13t
@@ -206,6 +207,7 @@ else
     info "DEVICE_NAME is $DEVICE_NAME, 正在应用patch补丁..."
     
     # 应用补丁
+
     sed -i 's/-32,12 +32,38/-32,11 +32,37/g' 50_add_susfs_in_gki-android15-6.6.patch
     sed -i '/#include <trace\/hooks\/fs.h>/d' 50_add_susfs_in_gki-android15-6.6.patch
 fi

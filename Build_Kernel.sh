@@ -23,7 +23,7 @@ ENABLE_LZ4KD=true
 info "请选择要编译的机型："
 info "1. 一加 Ace 5 Pro"
 info "2. 一加 13"
-info "3.❌ 一加 13T（暂时会报错请不要使用）"
+info "3.一加 13T"
 read -p "输入选择 [1-3]: " device_choice
 
 case $device_choice in

@@ -394,7 +394,7 @@ cp "$KERNEL_WORKSPACE/kernel_platform/common/out/arch/arm64/boot/Image" ./AnyKer
 
 # 打包
 cd AnyKernel3 || error "进入AnyKernel3目录失败"
-zip -r "AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip" ./* || error "打包失败"
+zip -r "AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu_${DEVICE_NAME}.zip" ./* || error "打包失败"
 
 # 创建C盘输出目录（通过WSL访问Windows的C盘）
 WIN_OUTPUT_DIR="/mnt/c/Kernel_Build/${DEVICE_NAME}/"
@@ -407,6 +407,6 @@ cp "$WORKSPACE/AnyKernel3/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu_${SUKI
 info "内核包路径: C:/Kernel_Build/${DEVICE_NAME}/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu_${SUKI_BRANCH}.zip.zip"
 info "Image路径: C:/Kernel_Build/${DEVICE_NAME}/Image"
 info "请在C盘目录中查找内核包和Image文件。"
-info "清理本次构建的所有文件..."
-sudo rm -rf "$WORKSPACE/kernel_workspace" || info "无法删除工作目录，可能未创建"
-info "清理完成！下次运行脚本将重新拉取源码并构建内核。"
+#info "清理本次构建的所有文件..."
+#sudo rm -rf "$WORKSPACE/kernel_workspace" || info "无法删除工作目录，可能未创建"
+#info "清理完成！下次运行脚本将重新拉取源码并构建内核。"

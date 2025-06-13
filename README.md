@@ -23,8 +23,8 @@ git clone https://github.com/showdo/build_oneplus_sm8750.git
 
 ```bash
 cd build_oneplus_sm8750
-chmod +x Build_Kernel.sh
-./Build_Kernel.sh
+chmod +x Build_Kernel_sm8750.sh
+./Build_Kernel_sm8750.sh
 ```
 
 ---

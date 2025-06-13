@@ -60,23 +60,6 @@ read -p "是否启用kpm?(回车默认开启) [y/N]: " kpm
 read -p "是否启用lz4kd?(回车默认开启) [y/N]: " lz4
 [[ "$lz4" =~ [yY] ]] && ENABLE_LZ4KD=true
 
-# SukiSu分支选择
-info "请选择要编译的SukiSu分支："
-info "1. Stable分支(稳定版分支)"
-info "2. dev分支(测试版分支)"
-read -p "输入选择 [1-2]: " branch_choice
-case $branch_choice in
-    1)
-        SUKI_BRANCH="stable"
-        ;;
-    2)
-        SUKI_BRANCH="dev"
-        ;;
-    *)
-        error "无效的选择，请输入1或2"
-        ;;
-esac
-
 # 环境变量 - 按机型区分ccache目录
 export CCACHE_COMPILERCHECK="%compiler% -dumpmachine; %compiler% -dumpversion"
 export CCACHE_NOHASHDIR="true"
@@ -173,7 +156,7 @@ rm -f kernel_platform/msm-kernel/android/abi_gki_protected_exports_*
 # 设置SukiSU
 info "设置SukiSU..."
 cd kernel_platform || error "进入kernel_platform失败"
-curl -LSs "https://raw.githubusercontent.com/ShirkNeko/SukiSU-Ultra/main/kernel/setup.sh" | bash -s susfs-${SUKI_BRANCH} || error "SukiSU设置失败"
+curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s susfs-main || error "SukiSU设置失败"
 
 cd KernelSU || error "进入KernelSU目录失败"
 KSU_VERSION=$(expr $(/usr/bin/git rev-list --count main) "+" 10606)
@@ -184,7 +167,7 @@ sed -i "s/DKSU_VERSION=12800/DKSU_VERSION=${KSU_VERSION}/" kernel/Makefile || er
 info "设置susfs..."
 cd "$KERNEL_WORKSPACE" || error "返回工作目录失败"
 git clone -q https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android15-6.6 || info "susfs4ksu已存在或克隆失败"
-git clone -q https://github.com/ShirkNeko/SukiSU_patch.git || info "SukiSU_patch已存在或克隆失败"
+git clone -q https://github.com/SukiSU-Ultra/SukiSU_patch.git || info "SukiSU_patch已存在或克隆失败"
 
 cd kernel_platform || error "进入kernel_platform失败"
 cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-android15-6.6.patch ./common/
@@ -378,7 +361,7 @@ fi
 # 应用Linux补丁
 info "应用Linux补丁..."
 cd out/arch/arm64/boot || error "进入boot目录失败"
-curl -LO https://github.com/ShirkNeko/SukiSU_KernelPatch_patch/releases/download/0.11-beta/patch_linux || error "下载patch_linux失败"
+curl -LO https://github.com/SukiSU-Ultra/SukiSU_KernelPatch_patch/releases/download/0.12.0/patch_linux || error "下载patch_linux失败"
 chmod +x patch_linux
 ./patch_linux || error "应用patch_linux失败"
 rm -f Image
@@ -394,7 +377,7 @@ cp "$KERNEL_WORKSPACE/kernel_platform/common/out/arch/arm64/boot/Image" ./AnyKer
 
 # 打包
 cd AnyKernel3 || error "进入AnyKernel3目录失败"
-zip -r "AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu_${SUKI_BRANCH}.zip" ./* || error "打包失败"
+zip -r "AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip" ./* || error "打包失败"
 
 # 创建C盘输出目录（通过WSL访问Windows的C盘）
 WIN_OUTPUT_DIR="/mnt/c/Kernel_Build/${DEVICE_NAME}/"
@@ -402,11 +385,11 @@ mkdir -p "$WIN_OUTPUT_DIR" || info "无法创建Windows目录，可能未挂载C
 
 # 复制Image和AnyKernel3包
 cp "$KERNEL_WORKSPACE/kernel_platform/common/out/arch/arm64/boot/Image" "$WIN_OUTPUT_DIR/"
-cp "$WORKSPACE/AnyKernel3/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu_${SUKI_BRANCH}.zip" "$WIN_OUTPUT_DIR/"
+cp "$WORKSPACE/AnyKernel3/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip" "$WIN_OUTPUT_DIR/"
 
-info "内核包路径: C:/Kernel_Build/${DEVICE_NAME}/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu_${SUKI_BRANCH}.zip.zip"
+info "内核包路径: C:/Kernel_Build/${DEVICE_NAME}/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip"
 info "Image路径: C:/Kernel_Build/${DEVICE_NAME}/Image"
 info "请在C盘目录中查找内核包和Image文件。"
-#info "清理本次构建的所有文件..."
-#sudo rm -rf "$WORKSPACE/kernel_workspace" || info "无法删除工作目录，可能未创建"
-#info "清理完成！下次运行脚本将重新拉取源码并构建内核。"
+info "清理本次构建的所有文件..."
+sudo rm -rf "$WORKSPACE/kernel_workspace" || info "无法删除工作目录，可能未创建"
+info "清理完成！下次运行脚本将重新拉取源码并构建内核。"

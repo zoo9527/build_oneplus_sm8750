@@ -350,11 +350,14 @@ export PATH="/usr/lib/ccache:$PATH"
 
 cd $KERNEL_WORKSPACE/kernel_platform/common || error "进入common目录失败"
 
+make LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
+O=out olddefconfig
+
 make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
 RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
 PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
-LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-O2  gki_defconfig Image \
-|| error "内核构建失败"
+LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-O2 Image
+
 
 
 # 应用Linux补丁

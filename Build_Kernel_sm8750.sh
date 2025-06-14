@@ -349,22 +349,13 @@ export PATH="$KERNEL_WORKSPACE/kernel_platform/prebuilts/clang/host/linux-x86/cl
 export PATH="/usr/lib/ccache:$PATH"
 
 cd $KERNEL_WORKSPACE/kernel_platform/common || error "进入common目录失败"
-# # 判断当前编译机型是否为一加13t
-# if [ "$DEVICE_NAME" = "oneplus_13t" ]; then
-#     info "当前编译机型为一加13T，KCFLAGS参数跳过-O2"
-#     make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
-#     RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
-#     PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
-#     LD=ld.lld HOSTLD=ld.lld O=out gki_defconfig all || error "内核构建失败"
-# else
-# info "当前编译机型为非一加13T，KCFLAGS参数加入-O2以提升生成代码的性能"
+
 make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
 RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
 PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
-LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-O2 gki_defconfig all \
+LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-O2  gki_defconfig Image \
 || error "内核构建失败"
 
-# fi
 
 # 应用Linux补丁
 info "应用Linux补丁..."

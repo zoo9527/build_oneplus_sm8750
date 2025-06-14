@@ -334,29 +334,37 @@ info "修改内核名称..."
 sed -i 's/${scm_version}//' common/scripts/setlocalversion || error "修改setlocalversion失败"
 sudo sed -i "s/-4k/${KERNEL_SUFFIX}/g" common/arch/arm64/configs/gki_defconfig || error "修改gki_defconfig失败"
 
+# 应用完美风驰补丁
+info "应用完美风驰补丁..."
+cd $KERNEL_WORKSPACE/kernel_platform/
+git clone https://github.com/HanKuCha/sched_ext.git
+cp -r ./sched_ext/* ./common/kernel/sched
+rm -rf ./sched_ext/.git
+cd $KERNEL_WORKSPACE/kernel_platform/common/kernel/sched  || error "跳转sched目录失败"
+
 # 构建内核
 info "开始构建内核..."
 export KBUILD_BUILD_TIMESTAMP="$KERNEL_TIME"
 export PATH="$KERNEL_WORKSPACE/kernel_platform/prebuilts/clang/host/linux-x86/clang-r510928/bin:$PATH"
 export PATH="/usr/lib/ccache:$PATH"
 
-cd common || error "进入common目录失败"
-# 判断当前编译机型是否为一加13t
-if [ "$DEVICE_NAME" = "oneplus_13t" ]; then
-    info "当前编译机型为一加13T，KCFLAGS参数跳过-O2"
-    make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
-    RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
-    PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
-    LD=ld.lld HOSTLD=ld.lld O=out gki_defconfig all || error "内核构建失败"
-else
-    info "当前编译机型为非一加13T，KCFLAGS参数加入-O2以提升生成代码的性能"
-    make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
-    RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
-    PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
-    LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-O2 gki_defconfig all \
-    || error "内核构建失败"
+cd $KERNEL_WORKSPACE/kernel_platform/common || error "进入common目录失败"
+# # 判断当前编译机型是否为一加13t
+# if [ "$DEVICE_NAME" = "oneplus_13t" ]; then
+#     info "当前编译机型为一加13T，KCFLAGS参数跳过-O2"
+#     make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
+#     RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
+#     PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
+#     LD=ld.lld HOSTLD=ld.lld O=out gki_defconfig all || error "内核构建失败"
+# else
+info "当前编译机型为非一加13T，KCFLAGS参数加入-O2以提升生成代码的性能"
+make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
+RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
+PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
+LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-O2 gki_defconfig all \
+|| error "内核构建失败"
 
-fi
+# fi
 
 # 应用Linux补丁
 info "应用Linux补丁..."

@@ -1,4 +1,4 @@
-name: Build Kernel for OnePlus Devices
+name: Build_oneplus_sm8750
 
 on:
   workflow_dispatch:
@@ -39,8 +39,15 @@ jobs:
     env:
       GITHUB_ACTIONS: true
     steps:
+      - name: 设置大内存交换文件
+        run: |
+          sudo fallocate -l 8G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Dependencies
         run: |
@@ -89,9 +96,3 @@ jobs:
         with:
           name: Kernel-ZIP-${{ github.event.inputs.device }}
           path: $HOME/kernel_${{ env.DEVICE_NAME }}/AnyKernel3/*.zip
-
-      - name: Upload Image Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Kernel-Image-${{ github.event.inputs.device }}
-          path: $HOME/kernel_${{ env.DEVICE_NAME }}/kernel_platform/common/out/arch/arm64/boot/Image

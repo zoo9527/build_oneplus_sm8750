@@ -1,0 +1,108 @@
+name: Build_oneplus_sm8750
+
+on:
+  workflow_dispatch:
+    inputs:
+      device:
+        description: "选择要编译的设备"
+        required: true
+        default: oneplus_13
+        type: choice
+        options:
+          - oneplus_ace5_pro
+          - oneplus_13
+          - oneplus_13t
+      kernel_suffix:
+        type: string
+        description: "自定义内核名称后缀"
+        required: false
+        default: "-android15-custom"
+      kernel_time:
+        type: string
+        description: "内核构建时间"
+        required: false
+        default: "Tue Dec 17 23:36:49 UTC 2024"
+      enable_kpm:
+        type: boolean
+        description: "是否启用KPM"
+        required: false
+        default: "true"
+      enable_lz4kd:
+        type: boolean
+        description: "是否启用LZ4KD"
+        required: false
+        default: "true"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      ENABLE_KPM: ${{ github.event.inputs.enable_kpm }}
+      ENABLE_LZ4KD: ${{ github.event.inputs.enable_lz4kd }}
+      KERNEL_SUFFIX: ${{ github.event.inputs.kernel_suffix }}
+      KERNEL_TIME: ${{ github.event.inputs.kernel_time }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y python3 git curl ccache flex bison libssl-dev libelf-dev bc zip build-essential
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "Q1udaoyu"
+          git config --global user.email "sucisama2888@gmail.com"
+
+      - name: Install repo tool
+        run: |
+          curl -fsSL https://storage.googleapis.com/git-repo-downloads/repo > ~/repo
+          chmod a+x ~/repo
+          sudo mv ~/repo /usr/local/bin/repo
+
+      - name: Set Environment
+        run: |
+          case "${{ github.event.inputs.device }}" in
+            oneplus_ace5_pro)
+              echo "DEVICE_NAME=oneplus_ace5_pro" >> $GITHUB_ENV
+              echo "REPO_MANIFEST=JiuGeFaCai_oneplus_ace5_pro_v.xml" >> $GITHUB_ENV
+              ;;
+            oneplus_13)
+              echo "DEVICE_NAME=oneplus_13" >> $GITHUB_ENV
+              echo "REPO_MANIFEST=JiuGeFaCai_oneplus_13_v.xml" >> $GITHUB_ENV
+              ;;
+            oneplus_13t)
+              echo "DEVICE_NAME=oneplus_13t" >> $GITHUB_ENV
+              echo "REPO_MANIFEST=oneplus_13t.xml" >> $GITHUB_ENV
+              ;;
+          esac
+
+      - name: Run Build Script with Parameters
+        run: |
+          chmod +x ./Build_Kernel_sm8750.sh
+          DEVICE_CHOICE="${{ github.event.inputs.device }}"
+          KERNEL_SUFFIX="${{ github.event.inputs.kernel_suffix }}"
+          KERNEL_TIME="${{ github.event.inputs.kernel_time }}"
+          ENABLE_KPM="${{ github.event.inputs.enable_kpm }}"
+          ENABLE_LZ4KD="${{ github.event.inputs.enable_lz4kd }}"
+
+          echo "选择设备: $DEVICE_CHOICE"
+          echo "内核后缀: $KERNEL_SUFFIX"
+          echo "内核时间: $KERNEL_TIME"
+          echo "启用KPM: $ENABLE_KPM"
+          echo "启用LZ4KD: $ENABLE_LZ4KD"
+
+          ./Build_Kernel_sm8750.sh <<< $'\n$KERNEL_SUFFIX\n$KERNEL_TIME\n$ENABLE_KPM\n$ENABLE_LZ4KD\n'
+
+      - name: Upload Kernel ZIP
+        uses: actions/upload-artifact@v3
+        with:
+          name: Kernel-ZIP-${{ github.event.inputs.device }}
+          path: $HOME/kernel_${{ env.DEVICE_NAME }}/AnyKernel3/*.zip
+
+      - name: Upload Image Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Kernel-Image-${{ github.event.inputs.device }}
+          path: $HOME/kernel_${{ env.DEVICE_NAME }}/kernel_platform/common/out/arch/arm64/boot/Image

@@ -344,19 +344,22 @@ cd $KERNEL_WORKSPACE/kernel_platform/common/kernel/sched  || error "跳转sched�
 
 # 构建内核
 info "开始构建内核..."
+
 export KBUILD_BUILD_TIMESTAMP="$KERNEL_TIME"
-export PATH="$KERNEL_WORKSPACE/kernel_platform/prebuilts/clang/host/linux-x86/clang-r510928/bin:$PATH"
-export PATH="/usr/lib/ccache:$PATH"
+export PATH="/usr/lib/ccache:$KERNEL_WORKSPACE/kernel_platform/prebuilts/clang/host/linux-x86/clang-r510928/bin:$PATH"
 
-cd $KERNEL_WORKSPACE/kernel_platform/common || error "进入common目录失败"
+cd "$KERNEL_WORKSPACE/kernel_platform/common" || error "进入common目录失败"
 
-make LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
-O=out olddefconfig
+export MAKE_ARGS="LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang"
 
-make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
-RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
-PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
-LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-O2 Image
+make $MAKE_ARGS O=out olddefconfig
+
+make -j$(nproc) $MAKE_ARGS \
+  RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
+  PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
+  LD=ld.lld HOSTLD=ld.lld \
+  O=out KCFLAGS+=-O2 Image || error "内核构建失败..."
+
 
 
 

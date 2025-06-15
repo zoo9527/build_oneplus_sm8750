@@ -102,7 +102,7 @@ jobs:
           path: $HOME/kernel_${{ env.DEVICE_NAME }}/AnyKernel3/*.zip
 
       - name: Upload Image Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Kernel-Image-${{ github.event.inputs.device }}
           path: $HOME/kernel_${{ env.DEVICE_NAME }}/kernel_platform/common/out/arch/arm64/boot/Image

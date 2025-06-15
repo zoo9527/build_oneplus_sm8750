@@ -393,5 +393,5 @@ info "内核包路径: C:/Kernel_Build/${DEVICE_NAME}/AnyKernel3_${KSU_VERSION}_
 info "Image路径: C:/Kernel_Build/${DEVICE_NAME}/Image"
 info "请在C盘目录中查找内核包和Image文件。"
 info "清理本次构建的所有文件..."
-sudo rm -rf "$WORKSPACE/kernel_workspace" || info "无法删除工作目录，可能未创建"
+sudo rm -rf "$WORKSPACE" || info "无法删除工作目录，可能未创建"
 info "清理完成！下次运行脚本将重新拉取源码并构建内核。"

@@ -1,16 +1,24 @@
 #!/bin/bash
 
-# 颜色定义
+# 颜色定义 - 添加对非交互终端的支持
 info() {
-  tput setaf 3  
-  echo "[INFO] $1"
-  tput sgr0
+  if [ -t 1 ]; then
+    tput setaf 3
+    echo "[INFO] $1"
+    tput sgr0
+  else
+    echo "[INFO] $1"
+  fi
 }
 
 error() {
-  tput setaf 1
-  echo "[ERROR] $1"
-  tput sgr0
+  if [ -t 1 ]; then
+    tput setaf 1
+    echo "[ERROR] $1"
+    tput sgr0
+  else
+    echo "[ERROR] $1"
+  fi
   exit 1
 }
 
@@ -19,46 +27,63 @@ KERNEL_SUFFIX="-android15-8-g013ec21bba94-abogki383916444-4k"
 ENABLE_KPM=true
 ENABLE_LZ4KD=true
 
-# 机型选择
-info "请选择要编译的机型："
-info "1. 一加 Ace 5 Pro"
-info "2. 一加 13"
-info "3.一加 13T"
-read -p "输入选择 [1-3]: " device_choice
+# 检测是否为非交互环境 (GitHub Actions)
+if [[ -n "$GITHUB_ACTIONS" ]]; then
+  # 从环境变量获取参数
+  DEVICE_NAME="$DEVICE_NAME"
+  REPO_MANIFEST="$REPO_MANIFEST"
+  KERNEL_TIME="$KERNEL_TIME"
+  [[ "$ENABLE_KPM" == "false" ]] && ENABLE_KPM=false
+  [[ "$ENABLE_LZ4KD" == "false" ]] && ENABLE_LZ4KD=false
+  
+  info "在CI环境中运行，使用预定义参数:"
+  info "设备: $DEVICE_NAME"
+  info "内核后缀: $KERNEL_SUFFIX"
+  info "构建时间: $KERNEL_TIME"
+  info "启用KPM: $ENABLE_KPM"
+  info "启用LZ4KD: $ENABLE_LZ4KD"
+else
+  # 交互式选择
+  info "请选择要编译的机型："
+  info "1. 一加 Ace 5 Pro"
+  info "2. 一加 13"
+  info "3.一加 13T"
+  read -p "输入选择 [1-3]: " device_choice
 
-case $device_choice in
-    1)
-        DEVICE_NAME="oneplus_ace5_pro"
-        REPO_MANIFEST="JiuGeFaCai_oneplus_ace5_pro_v.xml"
-        KERNEL_TIME="Wed Dec 4 02:11:46 UTC 2024"
-        ;;
-    2)
-        DEVICE_NAME="oneplus_13"
-        REPO_MANIFEST="JiuGeFaCai_oneplus_13_v.xml"
-        KERNEL_TIME="Tue Dec 17 23:36:49 UTC 2024"
-        ;;
-    3)
-        DEVICE_NAME="oneplus_13t"
-        REPO_MANIFEST="oneplus_13t.xml"
-        KERNEL_TIME="Tue Dec 17 23:36:49 UTC 2024"
-        ;;
-    *)
-        error "无效的选择，请输入1-3之间的数字"
-        ;;
-esac
+  case $device_choice in
+      1)
+          DEVICE_NAME="oneplus_ace5_pro"
+          REPO_MANIFEST="JiuGeFaCai_oneplus_ace5_pro_v.xml"
+          KERNEL_TIME="Wed Dec 4 02:11:46 UTC 2024"
+          ;;
+      2)
+          DEVICE_NAME="oneplus_13"
+          REPO_MANIFEST="JiuGeFaCai_oneplus_13_v.xml"
+          KERNEL_TIME="Tue Dec 17 23:36:49 UTC 2024"
+          ;;
+      3)
+          DEVICE_NAME="oneplus_13t"
+          REPO_MANIFEST="oneplus_13t.xml"
+          KERNEL_TIME="Tue Dec 17 23:36:49 UTC 2024"
+          ;;
+      *)
+          error "无效的选择，请输入1-3之间的数字"
+          ;;
+  esac
 
-# 自定义补丁
-read -p "输入内核名称修改(可改中文和emoji) [回车默认官核名称]: " input_suffix
-[ -n "$input_suffix" ] && KERNEL_SUFFIX="$input_suffix"
+  # 自定义补丁
+  read -p "输入内核名称修改(可改中文和emoji) [回车默认官核名称]: " input_suffix
+  [ -n "$input_suffix" ] && KERNEL_SUFFIX="$input_suffix"
 
-read -p "输入内核构建日期更改(回车默认为原厂) : " input_time
-[ -n "$input_time" ] && KERNEL_TIME="$input_time"
+  read -p "输入内核构建日期更改(回车默认为原厂) : " input_time
+  [ -n "$input_time" ] && KERNEL_TIME="$input_time"
 
-read -p "是否启用kpm?(回车默认开启) [y/N]: " kpm
-[[ "$kpm" =~ [yY] ]] && ENABLE_KPM=true
+  read -p "是否启用kpm?(回车默认开启) [y/N]: " kpm
+  [[ "$kpm" =~ [yY] ]] && ENABLE_KPM=true || ENABLE_KPM=false
 
-read -p "是否启用lz4kd?(回车默认开启) [y/N]: " lz4
-[[ "$lz4" =~ [yY] ]] && ENABLE_LZ4KD=true
+  read -p "是否启用lz4kd?(回车默认开启) [y/N]: " lz4
+  [[ "$lz4" =~ [yY] ]] && ENABLE_LZ4KD=true || ENABLE_LZ4KD=false
+fi
 
 # 环境变量 - 按机型区分ccache目录
 export CCACHE_COMPILERCHECK="%compiler% -dumpmachine; %compiler% -dumpversion"

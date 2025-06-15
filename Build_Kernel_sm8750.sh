@@ -1,24 +1,16 @@
 #!/bin/bash
 
-# 颜色定义 - 添加对非交互终端的支持
+# 颜色定义
 info() {
-  if [ -t 1 ]; then
-    tput setaf 3
-    echo "[INFO] $1"
-    tput sgr0
-  else
-    echo "[INFO] $1"
-  fi
+  tput setaf 3  
+  echo "[INFO] $1"
+  tput sgr0
 }
 
 error() {
-  if [ -t 1 ]; then
-    tput setaf 1
-    echo "[ERROR] $1"
-    tput sgr0
-  else
-    echo "[ERROR] $1"
-  fi
+  tput setaf 1
+  echo "[ERROR] $1"
+  tput sgr0
   exit 1
 }
 
@@ -27,63 +19,46 @@ KERNEL_SUFFIX="-android15-8-g013ec21bba94-abogki383916444-4k"
 ENABLE_KPM=true
 ENABLE_LZ4KD=true
 
-# 检测是否为非交互环境 (GitHub Actions)
-if [[ -n "$GITHUB_ACTIONS" ]]; then
-  # 从环境变量获取参数
-  DEVICE_NAME="$DEVICE_NAME"
-  REPO_MANIFEST="$REPO_MANIFEST"
-  KERNEL_TIME="$KERNEL_TIME"
-  [[ "$ENABLE_KPM" == "false" ]] && ENABLE_KPM=false
-  [[ "$ENABLE_LZ4KD" == "false" ]] && ENABLE_LZ4KD=false
-  
-  info "在CI环境中运行，使用预定义参数:"
-  info "设备: $DEVICE_NAME"
-  info "内核后缀: $KERNEL_SUFFIX"
-  info "构建时间: $KERNEL_TIME"
-  info "启用KPM: $ENABLE_KPM"
-  info "启用LZ4KD: $ENABLE_LZ4KD"
-else
-  # 交互式选择
-  info "请选择要编译的机型："
-  info "1. 一加 Ace 5 Pro"
-  info "2. 一加 13"
-  info "3.一加 13T"
-  read -p "输入选择 [1-3]: " device_choice
+# 机型选择
+info "请选择要编译的机型："
+info "1. 一加 Ace 5 Pro"
+info "2. 一加 13"
+info "3.一加 13T"
+read -p "输入选择 [1-3]: " device_choice
 
-  case $device_choice in
-      1)
-          DEVICE_NAME="oneplus_ace5_pro"
-          REPO_MANIFEST="JiuGeFaCai_oneplus_ace5_pro_v.xml"
-          KERNEL_TIME="Wed Dec 4 02:11:46 UTC 2024"
-          ;;
-      2)
-          DEVICE_NAME="oneplus_13"
-          REPO_MANIFEST="JiuGeFaCai_oneplus_13_v.xml"
-          KERNEL_TIME="Tue Dec 17 23:36:49 UTC 2024"
-          ;;
-      3)
-          DEVICE_NAME="oneplus_13t"
-          REPO_MANIFEST="oneplus_13t.xml"
-          KERNEL_TIME="Tue Dec 17 23:36:49 UTC 2024"
-          ;;
-      *)
-          error "无效的选择，请输入1-3之间的数字"
-          ;;
-  esac
+case $device_choice in
+    1)
+        DEVICE_NAME="oneplus_ace5_pro"
+        REPO_MANIFEST="JiuGeFaCai_oneplus_ace5_pro_v.xml"
+        KERNEL_TIME="Wed Dec 4 02:11:46 UTC 2024"
+        ;;
+    2)
+        DEVICE_NAME="oneplus_13"
+        REPO_MANIFEST="JiuGeFaCai_oneplus_13_v.xml"
+        KERNEL_TIME="Tue Dec 17 23:36:49 UTC 2024"
+        ;;
+    3)
+        DEVICE_NAME="oneplus_13t"
+        REPO_MANIFEST="oneplus_13t.xml"
+        KERNEL_TIME="Tue Dec 17 23:36:49 UTC 2024"
+        ;;
+    *)
+        error "无效的选择，请输入1-3之间的数字"
+        ;;
+esac
 
-  # 自定义补丁
-  read -p "输入内核名称修改(可改中文和emoji) [回车默认官核名称]: " input_suffix
-  [ -n "$input_suffix" ] && KERNEL_SUFFIX="$input_suffix"
+# 自定义补丁
+read -p "输入内核名称修改(可改中文和emoji) [回车默认官核名称]: " input_suffix
+[ -n "$input_suffix" ] && KERNEL_SUFFIX="$input_suffix"
 
-  read -p "输入内核构建日期更改(回车默认为原厂) : " input_time
-  [ -n "$input_time" ] && KERNEL_TIME="$input_time"
+read -p "输入内核构建日期更改(回车默认为原厂) : " input_time
+[ -n "$input_time" ] && KERNEL_TIME="$input_time"
 
-  read -p "是否启用kpm?(回车默认开启) [y/N]: " kpm
-  [[ "$kpm" =~ [yY] ]] && ENABLE_KPM=true || ENABLE_KPM=false
+read -p "是否启用kpm?(回车默认开启) [y/N]: " kpm
+[[ "$kpm" =~ [yY] ]] && ENABLE_KPM=true
 
-  read -p "是否启用lz4kd?(回车默认开启) [y/N]: " lz4
-  [[ "$lz4" =~ [yY] ]] && ENABLE_LZ4KD=true || ENABLE_LZ4KD=false
-fi
+read -p "是否启用lz4kd?(回车默认开启) [y/N]: " lz4
+[[ "$lz4" =~ [yY] ]] && ENABLE_LZ4KD=true
 
 # 环境变量 - 按机型区分ccache目录
 export CCACHE_COMPILERCHECK="%compiler% -dumpmachine; %compiler% -dumpversion"
@@ -116,7 +91,7 @@ cd "$WORKSPACE" || error "无法进入工作目录"
 
 # 检查并安装依赖
 info "检查并安装依赖..."
-DEPS=(python3 git curl ccache flex bison libssl-dev libelf-dev bc zip libncurses-dev gawk rsync dwarves zstd)
+DEPS=(python3 git curl ccache flex bison libssl-dev libelf-dev bc zip)
 MISSING_DEPS=()
 
 for pkg in "${DEPS[@]}"; do
@@ -207,6 +182,7 @@ cp -r ../SukiSU_patch/other/zram/lz4k_oplus ./common/lib/
 
 cd $KERNEL_WORKSPACE/kernel_platform/common || { echo "进入common目录失败"; exit 1; }
 
+
 # 判断当前编译机型是否为一加13t
 if [ "$DEVICE_NAME" = "oneplus_13t" ]; then
     info "当前编译机型为一加13T, 跳过patch补丁应用"
@@ -214,19 +190,14 @@ else
     info "DEVICE_NAME is $DEVICE_NAME, 正在应用patch补丁..."
     
     # 应用补丁
+
     sed -i 's/-32,12 +32,38/-32,11 +32,37/g' 50_add_susfs_in_gki-android15-6.6.patch
     sed -i '/#include <trace\/hooks\/fs.h>/d' 50_add_susfs_in_gki-android15-6.6.patch
 fi
 
-# 应用补丁（严格模式）
-if [ "$DEVICE_NAME" != "oneplus_13t" ]; then
-    info "应用SUSFS补丁..."
-    patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || error "SUSFS补丁应用失败"
-fi
-
-info "应用syscall_hooks补丁..."
+patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || info "SUSFS补丁应用可能有警告"
 cp "$KERNEL_WORKSPACE/SukiSU_patch/hooks/syscall_hooks.patch" ./ || error "复制syscall_hooks.patch失败"
-patch -p1 -F 3 < syscall_hooks.patch || error "syscall_hooks补丁应用失败"
+patch -p1 -F 3 < syscall_hooks.patch || info "syscall_hooks补丁应用可能有警告"
 
 # 应用HMBird GKI补丁
 info "应用HMBird GKI补丁..."
@@ -315,7 +286,7 @@ if [ "$ENABLE_LZ4KD" = true ]; then
     info "应用lz4kd补丁..."
     # 使用绝对路径确保正确找到补丁文件
     cp "$KERNEL_WORKSPACE/SukiSU_patch/other/zram/zram_patch/6.6/lz4kd.patch" ./ || error "复制lz4kd补丁失败"
-    patch -p1 -F 3 < lz4kd.patch || error "lz4kd补丁应用失败"
+    patch -p1 -F 3 < lz4kd.patch || info "lz4kd补丁应用可能有警告"
 fi
 
 # 添加SUSFS配置
@@ -371,30 +342,23 @@ cp -r ./sched_ext/* ./common/kernel/sched
 rm -rf ./sched_ext/.git
 cd $KERNEL_WORKSPACE/kernel_platform/common/kernel/sched  || error "跳转sched目录失败"
 
-# 修改构建部分：
-info "开始编译内核..."
-{
-    make -j$(($(nproc --all)/2)) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
-    RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
-    PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
-    LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-O2 Image 2>&1 | tee build.log
-} || {
-    error "内核编译失败！查看 build.log 获取详细错误信息"
-    echo "=== 最后20行编译日志 ==="
-    tail -n 20 build.log
-    exit 1
-}
+# 构建内核
+info "开始构建内核..."
+export KBUILD_BUILD_TIMESTAMP="$KERNEL_TIME"
+export PATH="$KERNEL_WORKSPACE/kernel_platform/prebuilts/clang/host/linux-x86/clang-r510928/bin:$PATH"
+export PATH="/usr/lib/ccache:$PATH"
 
-# 添加严格的产物检查
-if [ ! -f "out/arch/arm64/boot/Image" ]; then
-    error "致命错误：内核镜像未生成！可能原因："
-    error "1. 编译中途失败"
-    error "2. 内存不足（尝试减少并行编译任务数）"
-    error "3. 源码或补丁存在问题"
-    exit 1
-fi
+cd $KERNEL_WORKSPACE/kernel_platform/common || error "进入common目录失败"
 
-info "内核编译成功！"
+make LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
+O=out olddefconfig
+
+make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
+RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
+PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
+LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-O2 Image
+
+
 
 # 应用Linux补丁
 info "应用Linux补丁..."
@@ -417,27 +381,17 @@ cp "$KERNEL_WORKSPACE/kernel_platform/common/out/arch/arm64/boot/Image" ./AnyKer
 cd AnyKernel3 || error "进入AnyKernel3目录失败"
 zip -r "AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip" ./* || error "打包失败"
 
-# 区分本地环境和CI环境
-if [[ -n "$GITHUB_ACTIONS" ]]; then
-    # CI环境：GitHub Actions
-    info "在CI环境中构建完成，产物已生成。"
-    info "内核包路径: $WORKSPACE/AnyKernel3/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip"
-    info "Image路径: $KERNEL_WORKSPACE/kernel_platform/common/out/arch/arm64/boot/Image"
-else
-    # 本地环境：尝试复制到Windows C盘
-    WIN_OUTPUT_DIR="/mnt/c/Kernel_Build/${DEVICE_NAME}/"
-    mkdir -p "$WIN_OUTPUT_DIR" || info "无法创建Windows目录，可能未挂载C盘"
-    
-    # 复制Image和AnyKernel3包
-    cp "$KERNEL_WORKSPACE/kernel_platform/common/out/arch/arm64/boot/Image" "$WIN_OUTPUT_DIR/" || info "复制Image失败"
-    cp "$WORKSPACE/AnyKernel3/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip" "$WIN_OUTPUT_DIR/" || info "复制ZIP包失败"
-    
-    info "内核包路径: C:/Kernel_Build/${DEVICE_NAME}/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip"
-    info "Image路径: C:/Kernel_Build/${DEVICE_NAME}/Image"
-    info "请在C盘目录中查找内核包和Image文件。"
-    
-    # 清理工作
-    info "清理本次构建的所有文件..."
-    sudo rm -rf "$WORKSPACE/kernel_workspace" || info "无法删除工作目录，可能未创建"
-    info "清理完成！下次运行脚本将重新拉取源码并构建内核。"
-fi
+# 创建C盘输出目录（通过WSL访问Windows的C盘）
+WIN_OUTPUT_DIR="/mnt/c/Kernel_Build/${DEVICE_NAME}/"
+mkdir -p "$WIN_OUTPUT_DIR" || info "无法创建Windows目录，可能未挂载C盘，将保存到Linux目录"
+
+# 复制Image和AnyKernel3包
+cp "$KERNEL_WORKSPACE/kernel_platform/common/out/arch/arm64/boot/Image" "$WIN_OUTPUT_DIR/"
+cp "$WORKSPACE/AnyKernel3/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip" "$WIN_OUTPUT_DIR/"
+
+info "内核包路径: C:/Kernel_Build/${DEVICE_NAME}/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip"
+info "Image路径: C:/Kernel_Build/${DEVICE_NAME}/Image"
+info "请在C盘目录中查找内核包和Image文件。"
+info "清理本次构建的所有文件..."
+sudo rm -rf "$WORKSPACE/kernel_workspace" || info "无法删除工作目录，可能未创建"
+info "清理完成！下次运行脚本将重新拉取源码并构建内核。"

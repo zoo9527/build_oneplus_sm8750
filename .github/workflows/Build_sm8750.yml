@@ -1,4 +1,4 @@
-name: Build_oneplus_sm8750
+name: Build Kernel for OnePlus Devices
 
 on:
   workflow_dispatch:
@@ -14,9 +14,9 @@ on:
           - oneplus_13t
       kernel_suffix:
         type: string
-        description: "自定义内核名称后缀"
+        description: "自定义内核名称后缀(可中文及emoji)"
         required: false
-        default: "-android15-custom"
+        default: "-android15-8-g013ec21bba94-abogki383916444-4k"
       kernel_time:
         type: string
         description: "内核构建时间"
@@ -37,10 +37,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      ENABLE_KPM: ${{ github.event.inputs.enable_kpm }}
-      ENABLE_LZ4KD: ${{ github.event.inputs.enable_lz4kd }}
-      KERNEL_SUFFIX: ${{ github.event.inputs.kernel_suffix }}
-      KERNEL_TIME: ${{ github.event.inputs.kernel_time }}
+      GITHUB_ACTIONS: true
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -77,23 +74,15 @@ jobs:
               echo "REPO_MANIFEST=oneplus_13t.xml" >> $GITHUB_ENV
               ;;
           esac
+          echo "KERNEL_SUFFIX=${{ github.event.inputs.kernel_suffix }}" >> $GITHUB_ENV
+          echo "KERNEL_TIME=${{ github.event.inputs.kernel_time }}" >> $GITHUB_ENV
+          echo "ENABLE_KPM=${{ github.event.inputs.enable_kpm }}" >> $GITHUB_ENV
+          echo "ENABLE_LZ4KD=${{ github.event.inputs.enable_lz4kd }}" >> $GITHUB_ENV
 
-      - name: Run Build Script with Parameters
+      - name: Run Build Script
         run: |
           chmod +x ./Build_Kernel_sm8750.sh
-          DEVICE_CHOICE="${{ github.event.inputs.device }}"
-          KERNEL_SUFFIX="${{ github.event.inputs.kernel_suffix }}"
-          KERNEL_TIME="${{ github.event.inputs.kernel_time }}"
-          ENABLE_KPM="${{ github.event.inputs.enable_kpm }}"
-          ENABLE_LZ4KD="${{ github.event.inputs.enable_lz4kd }}"
-
-          echo "选择设备: $DEVICE_CHOICE"
-          echo "内核后缀: $KERNEL_SUFFIX"
-          echo "内核时间: $KERNEL_TIME"
-          echo "启用KPM: $ENABLE_KPM"
-          echo "启用LZ4KD: $ENABLE_LZ4KD"
-
-          ./Build_Kernel_sm8750.sh <<< $'\n$KERNEL_SUFFIX\n$KERNEL_TIME\n$ENABLE_KPM\n$ENABLE_LZ4KD\n'
+          ./Build_Kernel_sm8750.sh
 
       - name: Upload Kernel ZIP
         uses: actions/upload-artifact@v4

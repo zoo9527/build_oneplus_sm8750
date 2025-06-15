@@ -371,38 +371,27 @@ cp -r ./sched_ext/* ./common/kernel/sched
 rm -rf ./sched_ext/.git
 cd $KERNEL_WORKSPACE/kernel_platform/common/kernel/sched  || error "跳转sched目录失败"
 
-# 构建内核
-info "开始构建内核..."
-export KBUILD_BUILD_TIMESTAMP="$KERNEL_TIME"
-export PATH="$KERNEL_WORKSPACE/kernel_platform/prebuilts/clang/host/linux-x86/clang-r510928/bin:$PATH"
-export PATH="/usr/lib/ccache:$PATH"
-
-cd $KERNEL_WORKSPACE/kernel_platform/common || error "进入common目录失败"
-
-# 清理构建环境
-info "清理构建环境..."
-make mrproper 2>/dev/null || true
-rm -rf out || true
-
-# 运行配置
-info "运行内核配置..."
-make LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
-O=out olddefconfig 2>&1 | tee build_config.log || { 
-    error "配置失败，查看 build_config.log 获取详情"
-}
-
-# 构建内核（带详细日志）
+# 修改构建部分：
 info "开始编译内核..."
-make -j$(($(nproc --all)/2)) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
-RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
-PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
-LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-O2 Image 2>&1 | tee build.log || {
-    error "内核编译失败，查看 build.log 获取详情"
+{
+    make -j$(($(nproc --all)/2)) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
+    RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
+    PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
+    LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-O2 Image 2>&1 | tee build.log
+} || {
+    error "内核编译失败！查看 build.log 获取详细错误信息"
+    echo "=== 最后20行编译日志 ==="
+    tail -n 20 build.log
+    exit 1
 }
 
-# 检查构建结果
+# 添加严格的产物检查
 if [ ! -f "out/arch/arm64/boot/Image" ]; then
-    error "内核镜像未生成，构建失败"
+    error "致命错误：内核镜像未生成！可能原因："
+    error "1. 编译中途失败"
+    error "2. 内存不足（尝试减少并行编译任务数）"
+    error "3. 源码或补丁存在问题"
+    exit 1
 fi
 
 info "内核编译成功！"

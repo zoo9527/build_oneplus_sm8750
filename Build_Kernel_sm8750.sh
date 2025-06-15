@@ -116,7 +116,7 @@ cd "$WORKSPACE" || error "无法进入工作目录"
 
 # 检查并安装依赖
 info "检查并安装依赖..."
-DEPS=(python3 git curl ccache flex bison libssl-dev libelf-dev bc zip)
+DEPS=(python3 git curl ccache flex bison libssl-dev libelf-dev bc zip libncurses-dev gawk rsync dwarves zstd)
 MISSING_DEPS=()
 
 for pkg in "${DEPS[@]}"; do
@@ -207,7 +207,6 @@ cp -r ../SukiSU_patch/other/zram/lz4k_oplus ./common/lib/
 
 cd $KERNEL_WORKSPACE/kernel_platform/common || { echo "进入common目录失败"; exit 1; }
 
-
 # 判断当前编译机型是否为一加13t
 if [ "$DEVICE_NAME" = "oneplus_13t" ]; then
     info "当前编译机型为一加13T, 跳过patch补丁应用"
@@ -215,14 +214,19 @@ else
     info "DEVICE_NAME is $DEVICE_NAME, 正在应用patch补丁..."
     
     # 应用补丁
-
     sed -i 's/-32,12 +32,38/-32,11 +32,37/g' 50_add_susfs_in_gki-android15-6.6.patch
     sed -i '/#include <trace\/hooks\/fs.h>/d' 50_add_susfs_in_gki-android15-6.6.patch
 fi
 
-patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || info "SUSFS补丁应用可能有警告"
+# 应用补丁（严格模式）
+if [ "$DEVICE_NAME" != "oneplus_13t" ]; then
+    info "应用SUSFS补丁..."
+    patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || error "SUSFS补丁应用失败"
+fi
+
+info "应用syscall_hooks补丁..."
 cp "$KERNEL_WORKSPACE/SukiSU_patch/hooks/syscall_hooks.patch" ./ || error "复制syscall_hooks.patch失败"
-patch -p1 -F 3 < syscall_hooks.patch || info "syscall_hooks补丁应用可能有警告"
+patch -p1 -F 3 < syscall_hooks.patch || error "syscall_hooks补丁应用失败"
 
 # 应用HMBird GKI补丁
 info "应用HMBird GKI补丁..."
@@ -311,7 +315,7 @@ if [ "$ENABLE_LZ4KD" = true ]; then
     info "应用lz4kd补丁..."
     # 使用绝对路径确保正确找到补丁文件
     cp "$KERNEL_WORKSPACE/SukiSU_patch/other/zram/zram_patch/6.6/lz4kd.patch" ./ || error "复制lz4kd补丁失败"
-    patch -p1 -F 3 < lz4kd.patch || info "lz4kd补丁应用可能有警告"
+    patch -p1 -F 3 < lz4kd.patch || error "lz4kd补丁应用失败"
 fi
 
 # 添加SUSFS配置
@@ -375,15 +379,33 @@ export PATH="/usr/lib/ccache:$PATH"
 
 cd $KERNEL_WORKSPACE/kernel_platform/common || error "进入common目录失败"
 
-make LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
-O=out olddefconfig
+# 清理构建环境
+info "清理构建环境..."
+make mrproper 2>/dev/null || true
+rm -rf out || true
 
-make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
+# 运行配置
+info "运行内核配置..."
+make LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
+O=out olddefconfig 2>&1 | tee build_config.log || { 
+    error "配置失败，查看 build_config.log 获取详情"
+}
+
+# 构建内核（带详细日志）
+info "开始编译内核..."
+make -j$(($(nproc --all)/2)) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
 RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
 PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
-LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-O2 Image
+LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-O2 Image 2>&1 | tee build.log || {
+    error "内核编译失败，查看 build.log 获取详情"
+}
 
+# 检查构建结果
+if [ ! -f "out/arch/arm64/boot/Image" ]; then
+    error "内核镜像未生成，构建失败"
+fi
 
+info "内核编译成功！"
 
 # 应用Linux补丁
 info "应用Linux补丁..."
@@ -406,17 +428,27 @@ cp "$KERNEL_WORKSPACE/kernel_platform/common/out/arch/arm64/boot/Image" ./AnyKer
 cd AnyKernel3 || error "进入AnyKernel3目录失败"
 zip -r "AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip" ./* || error "打包失败"
 
-# 创建C盘输出目录（通过WSL访问Windows的C盘）
-WIN_OUTPUT_DIR="/mnt/c/Kernel_Build/${DEVICE_NAME}/"
-mkdir -p "$WIN_OUTPUT_DIR" || info "无法创建Windows目录，可能未挂载C盘，将保存到Linux目录"
-
-# 复制Image和AnyKernel3包
-cp "$KERNEL_WORKSPACE/kernel_platform/common/out/arch/arm64/boot/Image" "$WIN_OUTPUT_DIR/"
-cp "$WORKSPACE/AnyKernel3/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip" "$WIN_OUTPUT_DIR/"
-
-info "内核包路径: C:/Kernel_Build/${DEVICE_NAME}/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip"
-info "Image路径: C:/Kernel_Build/${DEVICE_NAME}/Image"
-info "请在C盘目录中查找内核包和Image文件。"
-info "清理本次构建的所有文件..."
-sudo rm -rf "$WORKSPACE/kernel_workspace" || info "无法删除工作目录，可能未创建"
-info "清理完成！下次运行脚本将重新拉取源码并构建内核。"
+# 区分本地环境和CI环境
+if [[ -n "$GITHUB_ACTIONS" ]]; then
+    # CI环境：GitHub Actions
+    info "在CI环境中构建完成，产物已生成。"
+    info "内核包路径: $WORKSPACE/AnyKernel3/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip"
+    info "Image路径: $KERNEL_WORKSPACE/kernel_platform/common/out/arch/arm64/boot/Image"
+else
+    # 本地环境：尝试复制到Windows C盘
+    WIN_OUTPUT_DIR="/mnt/c/Kernel_Build/${DEVICE_NAME}/"
+    mkdir -p "$WIN_OUTPUT_DIR" || info "无法创建Windows目录，可能未挂载C盘"
+    
+    # 复制Image和AnyKernel3包
+    cp "$KERNEL_WORKSPACE/kernel_platform/common/out/arch/arm64/boot/Image" "$WIN_OUTPUT_DIR/" || info "复制Image失败"
+    cp "$WORKSPACE/AnyKernel3/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip" "$WIN_OUTPUT_DIR/" || info "复制ZIP包失败"
+    
+    info "内核包路径: C:/Kernel_Build/${DEVICE_NAME}/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip"
+    info "Image路径: C:/Kernel_Build/${DEVICE_NAME}/Image"
+    info "请在C盘目录中查找内核包和Image文件。"
+    
+    # 清理工作
+    info "清理本次构建的所有文件..."
+    sudo rm -rf "$WORKSPACE/kernel_workspace" || info "无法删除工作目录，可能未创建"
+    info "清理完成！下次运行脚本将重新拉取源码并构建内核。"
+fi

@@ -217,7 +217,7 @@ apply_hmbird_patch() {
     cd drivers || error "进入drivers目录失败"
     
     # 设置补丁URL（移除local关键字）
-    patch_url="https://raw.githubusercontent.com/你的用户名/你的仓库名/main/hmbird_patch.c"
+    patch_url="https://raw.githubusercontent.com/showdo/build_oneplus_sm8750/main/hmbird_patch.c"
     
     info "从GitHub下载补丁文件..."
     if ! curl -sSLo hmbird_patch.c "$patch_url"; then

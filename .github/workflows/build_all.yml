@@ -55,7 +55,7 @@ jobs:
           script: |
             const { owner, repo } = context.repo;
             
-      
+            // 为不同设备设置特定的输入参数
             const inputs = {
               KERNEL_SUFFIX: '${{ steps.set_suffix.outputs.kernel_suffix }}',
               KERNEL_TIME: '${{ inputs.KERNEL_TIME }}',
@@ -74,7 +74,7 @@ jobs:
             });
             
             // 等待几秒让工作流运行创建
-            await new Promise(resolve => setTimeout(resolve, 15000));
+            await new Promise(resolve => setTimeout(resolve, 5000));
             
             // 获取最新运行ID
             const runs = await github.rest.actions.listWorkflowRuns({
@@ -90,16 +90,26 @@ jobs:
             }
             
             const runId = runs.data.workflow_runs[0].id;
+            const runUrl = runs.data.workflow_runs[0].html_url;
+            
+            // 设置输出
             core.setOutput('run_id', runId);
+            core.setOutput('run_url', runUrl);
             return runId;
 
       - name: Wait for Build Completion
         uses: fountainhead/action-wait-for-check@v1.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          runId: ${{ steps.trigger.outputs.result }}
-          intervalSeconds: 60
-          timeoutSeconds: 7200 
+          # 使用 checkName 参数而不是 runId
+          checkName: "Build ${{ matrix.device }}"
+          # 设置 ref 为当前分支
+          ref: ${{ github.ref }}
+          # 设置 repo 和 owner
+          repo: ${{ github.repository }}
+          owner: ${{ github.repository_owner }}
+          intervalSeconds: 60  # 每60秒检查一次
+          timeoutSeconds: 7200  # 等待最多2小时
 
   collect_artifacts:
     name: Collect Artifacts

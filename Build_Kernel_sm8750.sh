@@ -370,7 +370,7 @@ LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-O2  gki_defconfig Image \
 # 应用Linux补丁
 info "应用Linux补丁..."
 cd out/arch/arm64/boot || error "进入boot目录失败"
-curl -LO https://github.com/SukiSU-Ultra/SukiSU_KernelPatch_patch/releases/download/0.12.0/patch_linux || error "下载patch_linux失败"
+curl -LO https://github.com/SukiSU-Ultra/SukiSU_KernelPatch_patch/releases/download/0.11-beta/patch_linux || error "下载patch_linux失败"
 chmod +x patch_linux
 ./patch_linux || error "应用patch_linux失败"
 rm -f Image

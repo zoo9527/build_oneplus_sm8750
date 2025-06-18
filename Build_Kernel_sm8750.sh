@@ -24,7 +24,8 @@ info "请选择要编译的机型："
 info "1. 一加 Ace 5 Pro"
 info "2. 一加 13"
 info "3.一加 13T"
-read -p "输入选择 [1-3]: " device_choice
+info "4.一加 Pad 2 Pro"
+read -p "输入选择 [1-4]: " device_choice
 
 case $device_choice in
     1)
@@ -42,14 +43,23 @@ case $device_choice in
         REPO_MANIFEST="oneplus_13t.xml"
         KERNEL_TIME="Tue Dec 17 23:36:49 UTC 2024"
         ;;
+    4)
+        DEVICE_NAME="oneplus_pad_2_pro"
+        REPO_MANIFEST="oneplus_pad_2_pro.xml"
+        KERNEL_TIME="Tue Dec 17 23:36:49 UTC 2024"
+        ;;
     *)
         error "无效的选择，请输入1-3之间的数字"
         ;;
 esac
 
 # 自定义补丁
-read -p "输入内核名称修改(可改中文和emoji) [回车默认官核名称]: " input_suffix
+
+if [[ "$DEVICE_NAME" == "oneplus_pad_2_pro" ]]; then
+    KERNEL_SUFFIX="-TG@qdykernel"
+    read -p "输入内核名称修改(可改中文和emoji 回车默认): " input_suffix
 [ -n "$input_suffix" ] && KERNEL_SUFFIX="$input_suffix"
+fi
 
 read -p "输入内核构建日期更改(回车默认为原厂) : " input_time
 [ -n "$input_time" ] && KERNEL_TIME="$input_time"
@@ -360,10 +370,17 @@ export PATH="/usr/lib/ccache:$PATH"
 
 cd $KERNEL_WORKSPACE/kernel_platform/common || error "进入common目录失败"
 
+# 生成.config
 make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
-RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
-PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
-LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-O2  gki_defconfig Image \
+  RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
+  PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
+  LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-O2 gki_defconfig || error "生成配置失败"
+
+# 编译 Image（内核镜像）
+make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
+  RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
+  PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
+  LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-O2 Image || error "内核构建失败"
 || error "内核构建失败"
 
 
@@ -390,7 +407,7 @@ zip -r "AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip" ./* || error "打�
 
 # 创建C盘输出目录（通过WSL访问Windows的C盘）
 WIN_OUTPUT_DIR="/mnt/c/Kernel_Build/${DEVICE_NAME}/"
-mkdir -p "$WIN_OUTPUT_DIR" || info "无法创建Windows目录，可能未挂载C盘，将保存到Linux目录"
+mkdir -p "$WIN_OUTPUT_DIR" || error "无法创建Windows目录，可能未挂载C盘，将保存到Linux目录:$WORKSPACE/AnyKernel3/AnyKernel3_${KSU_VERSION}_${DEVICE_NAME}_SuKiSu.zip"
 
 # 复制Image和AnyKernel3包
 cp "$KERNEL_WORKSPACE/kernel_platform/common/out/arch/arm64/boot/Image" "$WIN_OUTPUT_DIR/"

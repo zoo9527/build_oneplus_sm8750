@@ -1,0 +1,80 @@
+name: Build All Kernels
+
+on:
+  workflow_dispatch:
+    inputs:
+      KERNEL_SUFFIX:
+        description: '内核名称修改(可改中文和emoji)'
+        required: true
+        default: '-android15-8-g013ec21bba94-abogki383916444-4k'
+      KERNEL_TIME:
+        description: "内核构建日期更改(默认为原厂)"
+        required: true
+        default: 'Tue Dec 17 23:36:49 UTC 2024'
+      enable_feature_x:
+        description: "是否启用kpm"
+        required: false
+        default: true
+        type: boolean
+      enable_feature_y:
+        description: "是否启用lz4kd"
+        required: false
+        default: true
+        type: boolean
+      enable_feature_z:
+        description: "是否添加风驰驱动"
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  trigger_builds:
+    name: Trigger Device Builds
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger oneplus_13
+        uses: actions/workflow-dispatch@v3
+        with:
+          workflow: oneplus_13.yml
+          inputs: ${{ toJSON(inputs) }}
+          
+      - name: Trigger oneplus_13T
+        uses: actions/workflow-dispatch@v3
+        with:
+          workflow: oneplus_13T.yml
+          inputs: ${{ toJSON(inputs) }}
+          
+      - name: Trigger oneplus_ace5_pro
+        uses: actions/workflow-dispatch@v3
+        with:
+          workflow: oneplus_ace5_pro.yml
+          inputs: ${{ toJSON(inputs) }}
+          
+      - name: Trigger oneplus_pad_2_pro
+        uses: actions/workflow-dispatch@v3
+        with:
+          workflow: oneplus_pad_2_pro.yml
+          inputs: ${{ toJSON(inputs) }}
+
+  collect_artifacts:
+    name: Collect All Artifacts
+    needs: trigger_builds
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: combined_artifacts
+          
+      - name: Create Download Package
+        run: |
+          cd combined_artifacts
+          zip -r ../all_kernels.zip .
+          cd ..
+        shell: bash
+        
+      - name: Upload Combined Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ALL_KERNELS_PACKAGE
+          path: all_kernels.zip

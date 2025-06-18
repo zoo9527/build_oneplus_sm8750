@@ -31,30 +31,56 @@ jobs:
   trigger_builds:
     name: Trigger Device Builds
     runs-on: ubuntu-latest
+    outputs:
+      run_id: ${{ steps.meta.outputs.run-id }}
     steps:
+      - name: Generate unique run ID
+        id: meta
+        run: echo "run-id=$(date +%s)" >> $GITHUB_OUTPUT
+        
       - name: Trigger oneplus_13
-        uses: actions/workflow-dispatch@v3
+        uses: convictional/trigger-workflow-and-wait@v1.8.0
         with:
-          workflow: oneplus_13.yml
-          inputs: ${{ toJSON(inputs) }}
+          owner: ${{ github.repository_owner }}
+          repo: ${{ github.repository }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow_file_name: oneplus_13.yml
+          ref: ${{ github.ref }}
+          wait_interval: 30
+          inputs: '{"KERNEL_SUFFIX": "${{ inputs.KERNEL_SUFFIX }}", "KERNEL_TIME": "${{ inputs.KERNEL_TIME }}", "enable_feature_x": ${{ inputs.enable_feature_x }}, "enable_feature_y": ${{ inputs.enable_feature_y }}, "enable_feature_z": ${{ inputs.enable_feature_z }}, "parent_run_id": "${{ steps.meta.outputs.run-id }}"}'
           
       - name: Trigger oneplus_13T
-        uses: actions/workflow-dispatch@v3
+        uses: convictional/trigger-workflow-and-wait@v1.8.0
         with:
-          workflow: oneplus_13T.yml
-          inputs: ${{ toJSON(inputs) }}
+          owner: ${{ github.repository_owner }}
+          repo: ${{ github.repository }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow_file_name: oneplus_13T.yml
+          ref: ${{ github.ref }}
+          wait_interval: 30
+          inputs: '{"KERNEL_SUFFIX": "${{ inputs.KERNEL_SUFFIX }}", "KERNEL_TIME": "${{ inputs.KERNEL_TIME }}", "enable_feature_x": ${{ inputs.enable_feature_x }}, "enable_feature_y": ${{ inputs.enable_feature_y }}, "enable_feature_z": ${{ inputs.enable_feature_z }}, "parent_run_id": "${{ steps.meta.outputs.run-id }}"}'
           
       - name: Trigger oneplus_ace5_pro
-        uses: actions/workflow-dispatch@v3
+        uses: convictional/trigger-workflow-and-wait@v1.8.0
         with:
-          workflow: oneplus_ace5_pro.yml
-          inputs: ${{ toJSON(inputs) }}
+          owner: ${{ github.repository_owner }}
+          repo: ${{ github.repository }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow_file_name: oneplus_ace5_pro.yml
+          ref: ${{ github.ref }}
+          wait_interval: 30
+          inputs: '{"KERNEL_SUFFIX": "${{ inputs.KERNEL_SUFFIX }}", "KERNEL_TIME": "${{ inputs.KERNEL_TIME }}", "enable_feature_x": ${{ inputs.enable_feature_x }}, "enable_feature_y": ${{ inputs.enable_feature_y }}, "enable_feature_z": ${{ inputs.enable_feature_z }}, "parent_run_id": "${{ steps.meta.outputs.run-id }}"}'
           
       - name: Trigger oneplus_pad_2_pro
-        uses: actions/workflow-dispatch@v3
+        uses: convictional/trigger-workflow-and-wait@v1.8.0
         with:
-          workflow: oneplus_pad_2_pro.yml
-          inputs: ${{ toJSON(inputs) }}
+          owner: ${{ github.repository_owner }}
+          repo: ${{ github.repository }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow_file_name: oneplus_pad_2_pro.yml
+          ref: ${{ github.ref }}
+          wait_interval: 30
+          inputs: '{"KERNEL_SUFFIX": "${{ inputs.KERNEL_SUFFIX }}", "KERNEL_TIME": "${{ inputs.KERNEL_TIME }}", "enable_feature_x": ${{ inputs.enable_feature_x }}, "enable_feature_y": ${{ inputs.enable_feature_y }}, "enable_feature_z": ${{ inputs.enable_feature_z }}, "parent_run_id": "${{ steps.meta.outputs.run-id }}"}'
 
   collect_artifacts:
     name: Collect All Artifacts

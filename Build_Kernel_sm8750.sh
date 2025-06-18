@@ -334,7 +334,6 @@ make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clan
   RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
   PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
   LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-O2 Image || error "内核构建失败"
-|| error "内核构建失败"
 
 
 # 应用Linux补丁

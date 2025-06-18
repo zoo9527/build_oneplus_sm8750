@@ -314,6 +314,16 @@ CONFIG_CRYPTO_LZ4HC=y
 CONFIG_CRYPTO_LZ4K=y
 CONFIG_CRYPTO_LZ4KD=y
 CONFIG_CRYPTO_842=y
+# Add BBR
+CONFIG_TCP_CONG_ADVANCED=y
+CONFIG_TCP_CONG_BBR=y
+CONFIG_NET_SCH_FQ=y
+CONFIG_TCP_CONG_BIC=n
+CONFIG_TCP_CONG_CUBIC=n
+CONFIG_TCP_CONG_WESTWOOD=n
+CONFIG_TCP_CONG_HTCP=n
+CONFIG_DEFAULT_TCP_CONG=bbr
+
 CONFIG_LOCALVERSION_AUTO=n" >> gki_defconfig
 
 # 返回kernel_platform目录
@@ -364,7 +374,7 @@ curl -LO https://github.com/SukiSU-Ultra/SukiSU_KernelPatch_patch/releases/downl
 chmod +x patch_linux
 ./patch_linux || error "应用patch_linux失败"
 rm -f Image
-mv oImage Image || error "重命名Image失败"
+mv oImage Image || error "替换Image失败"
 
 # 创建AnyKernel3包
 info "创建AnyKernel3包..."

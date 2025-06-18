@@ -25,6 +25,10 @@ on:
        required: false
        default: true
        type: boolean
+      parent_run_id:
+        description: "父工作流ID"
+        required: false
+        default: ''
        
 
 

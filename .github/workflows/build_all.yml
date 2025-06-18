@@ -28,77 +28,95 @@ on:
         type: boolean
 
 jobs:
-  trigger_builds:
-    name: Trigger Device Builds
+  build_all:
+    name: Build All Devices
     runs-on: ubuntu-latest
-    outputs:
-      run_id: ${{ steps.meta.outputs.run-id }}
+    strategy:
+      matrix:
+        device: 
+          - oneplus_13
+          - oneplus_13T
+          - oneplus_ace5_pro
+          - oneplus_pad_2_pro
     steps:
-      - name: Generate unique run ID
-        id: meta
-        run: echo "run-id=$(date +%s)" >> $GITHUB_OUTPUT
-        
-      - name: Trigger oneplus_13
-        uses: convictional/trigger-workflow-and-wait@v1.8.0
+      - name: Determine Kernel Suffix
+        id: set_suffix
+        run: |
+          if [ "${{ matrix.device }}" = "oneplus_pad_2_pro" ]; then
+            echo "kernel_suffix=-TG@Q1udaoyu" >> $GITHUB_OUTPUT
+          else
+            echo "kernel_suffix=${{ inputs.KERNEL_SUFFIX }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Trigger Device Build
+        uses: actions/github-script@v7
+        id: trigger
         with:
-          owner: ${{ github.repository_owner }}
-          repo: ${{ github.repository }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          workflow_file_name: oneplus_13.yml
-          ref: ${{ github.ref }}
-          wait_interval: 30
-          inputs: '{"KERNEL_SUFFIX": "${{ inputs.KERNEL_SUFFIX }}", "KERNEL_TIME": "${{ inputs.KERNEL_TIME }}", "enable_feature_x": ${{ inputs.enable_feature_x }}, "enable_feature_y": ${{ inputs.enable_feature_y }}, "enable_feature_z": ${{ inputs.enable_feature_z }}, "parent_run_id": "${{ steps.meta.outputs.run-id }}"}'
-          
-      - name: Trigger oneplus_13T
-        uses: convictional/trigger-workflow-and-wait@v1.8.0
+          script: |
+            const { owner, repo } = context.repo;
+            
+      
+            const inputs = {
+              KERNEL_SUFFIX: '${{ steps.set_suffix.outputs.kernel_suffix }}',
+              KERNEL_TIME: '${{ inputs.KERNEL_TIME }}',
+              enable_feature_x: ${{ inputs.enable_feature_x }},
+              enable_feature_y: ${{ inputs.enable_feature_y }},
+              enable_feature_z: ${{ inputs.enable_feature_z }}
+            };
+            
+            // 触发工作流
+            const response = await github.rest.actions.createWorkflowDispatch({
+              owner,
+              repo,
+              workflow_id: '${{ matrix.device }}.yml',
+              ref: '${{ github.ref }}',
+              inputs
+            });
+            
+            // 等待几秒让工作流运行创建
+            await new Promise(resolve => setTimeout(resolve, 15000));
+            
+            // 获取最新运行ID
+            const runs = await github.rest.actions.listWorkflowRuns({
+              owner,
+              repo,
+              workflow_id: '${{ matrix.device }}.yml',
+              per_page: 1,
+              event: 'workflow_dispatch'
+            });
+            
+            if (runs.data.workflow_runs.length === 0) {
+              throw new Error('Failed to find triggered workflow run');
+            }
+            
+            const runId = runs.data.workflow_runs[0].id;
+            core.setOutput('run_id', runId);
+            return runId;
+
+      - name: Wait for Build Completion
+        uses: fountainhead/action-wait-for-check@v1.0.0
         with:
-          owner: ${{ github.repository_owner }}
-          repo: ${{ github.repository }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          workflow_file_name: oneplus_13T.yml
-          ref: ${{ github.ref }}
-          wait_interval: 30
-          inputs: '{"KERNEL_SUFFIX": "${{ inputs.KERNEL_SUFFIX }}", "KERNEL_TIME": "${{ inputs.KERNEL_TIME }}", "enable_feature_x": ${{ inputs.enable_feature_x }}, "enable_feature_y": ${{ inputs.enable_feature_y }}, "enable_feature_z": ${{ inputs.enable_feature_z }}, "parent_run_id": "${{ steps.meta.outputs.run-id }}"}'
-          
-      - name: Trigger oneplus_ace5_pro
-        uses: convictional/trigger-workflow-and-wait@v1.8.0
-        with:
-          owner: ${{ github.repository_owner }}
-          repo: ${{ github.repository }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          workflow_file_name: oneplus_ace5_pro.yml
-          ref: ${{ github.ref }}
-          wait_interval: 30
-          inputs: '{"KERNEL_SUFFIX": "${{ inputs.KERNEL_SUFFIX }}", "KERNEL_TIME": "${{ inputs.KERNEL_TIME }}", "enable_feature_x": ${{ inputs.enable_feature_x }}, "enable_feature_y": ${{ inputs.enable_feature_y }}, "enable_feature_z": ${{ inputs.enable_feature_z }}, "parent_run_id": "${{ steps.meta.outputs.run-id }}"}'
-          
-      - name: Trigger oneplus_pad_2_pro
-        uses: convictional/trigger-workflow-and-wait@v1.8.0
-        with:
-          owner: ${{ github.repository_owner }}
-          repo: ${{ github.repository }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          workflow_file_name: oneplus_pad_2_pro.yml
-          ref: ${{ github.ref }}
-          wait_interval: 30
-          inputs: '{"KERNEL_SUFFIX": "${{ inputs.KERNEL_SUFFIX }}", "KERNEL_TIME": "${{ inputs.KERNEL_TIME }}", "enable_feature_x": ${{ inputs.enable_feature_x }}, "enable_feature_y": ${{ inputs.enable_feature_y }}, "enable_feature_z": ${{ inputs.enable_feature_z }}, "parent_run_id": "${{ steps.meta.outputs.run-id }}"}'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          runId: ${{ steps.trigger.outputs.result }}
+          intervalSeconds: 60
+          timeoutSeconds: 7200 
 
   collect_artifacts:
-    name: Collect All Artifacts
-    needs: trigger_builds
+    name: Collect Artifacts
+    needs: build_all
     runs-on: ubuntu-latest
     steps:
-      - name: Download Artifacts
+      - name: Download All Artifacts
         uses: actions/download-artifact@v4
         with:
-          path: combined_artifacts
+          path: artifacts
           
-      - name: Create Download Package
+      - name: Package for Download
         run: |
-          cd combined_artifacts
+          cd artifacts
           zip -r ../all_kernels.zip .
           cd ..
-        shell: bash
-        
+          
       - name: Upload Combined Package
         uses: actions/upload-artifact@v4
         with:

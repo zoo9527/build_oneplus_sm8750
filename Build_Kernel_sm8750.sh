@@ -209,27 +209,37 @@ patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || info "SUSFS补丁应用�
 cp "$KERNEL_WORKSPACE/SukiSU_patch/hooks/syscall_hooks.patch" ./ || error "复制syscall_hooks.patch失败"
 patch -p1 -F 3 < syscall_hooks.patch || info "syscall_hooks补丁应用可能有警告"
 
-info "开始应用HMBird GKI补丁..."
-cd drivers || error "进入drivers目录失败"
-# 下载补丁文件
-local patch_url="https://raw.githubusercontent.com/showdo/build_oneplus_sm8750/main/hmbird_patch.c"
-info "从GitHub下载补丁文件..."
-if ! curl -sSLo hmbird_patch.c "$patch_url"; then
-    error "补丁下载失败，请检查网络..."
-fi
+# 应用HMBird GKI补丁
+apply_hmbird_patch() {
+    info "开始应用HMBird GKI补丁..."
+    
+    # 进入目录（带错误检查）
+    cd drivers || error "进入drivers目录失败"
+    
+    # 设置补丁URL（移除local关键字）
+    patch_url="https://raw.githubusercontent.com/你的用户名/你的仓库名/main/hmbird_patch.c"
+    
+    info "从GitHub下载补丁文件..."
+    if ! curl -sSLo hmbird_patch.c "$patch_url"; then
+        error "补丁下载失败，请检查网络或URL: $patch_url"
+    fi
 
-# 验证文件内容
-if ! grep -q "MODULE_DESCRIPTION" hmbird_patch.c; then
-    error "下载的文件不完整或格式不正确"
-fi
+    # 验证文件内容
+    if ! grep -q "MODULE_DESCRIPTION" hmbird_patch.c; then
+        error "下载的文件不完整或格式不正确"
+    fi
 
-# 更新Makefile
-info "更新Makefile配置..."
-if ! grep -q "hmbird_patch.o" Makefile; then
-    echo "obj-y += hmbird_patch.o" >> Makefile || error "写入Makefile失败"
-fi
+    # 更新Makefile
+    info "更新Makefile配置..."
+    if ! grep -q "hmbird_patch.o" Makefile; then
+        echo "obj-y += hmbird_patch.o" >> Makefile || error "写入Makefile失败"
+    fi
 
-info "HMBird补丁应用成功！"
+    info "HMBird补丁应用成功！"
+}
+
+# 主流程
+apply_hmbird_patch
 
 # 返回common目录
 cd .. || error "返回common目录失败"

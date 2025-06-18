@@ -5,7 +5,7 @@ on:
       KERNEL_SUFFIX:
         description: '内核名称修改(可改中文和emoji)'
         required: true
-        default: '-android15-8-g013ec21bba94-abogki383916444-4k'
+        default: '-TG@Q1udaoyu'
       KERNEL_TIME:
        description: "内核构建日期更改(默认为原厂)"
        required: true
@@ -25,18 +25,19 @@ on:
        required: false
        default: true
        type: boolean
+      
+       
+
 
 jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      CCACHE_COMPILERCHECK: "content"
+      CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
       CCACHE_NOHASHDIR: "true"
       CCACHE_HARDLINK: "true"
-      CCACHE_DIR: /home/runner/.ccache
+      CCACHE_DIR: /home/runner/.ccache  
       CCACHE_MAXSIZE: 8G
-      CCACHE_COMPRESS: "true"
-      CCACHE_COMPRESSLEVEL: "6"
     steps:
       - name: Maximize build space
         uses: easimon/maximize-build-space@master
@@ -56,24 +57,14 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update && sudo apt upgrade -y
+          sudo apt install -y python3 git curl
           sudo apt install -y python3 git curl ccache
-          sudo ln -s /usr/bin/ccache /usr/local/bin/ccache-clang
-          sudo ln -s /usr/bin/ccache /usr/local/bin/ccache-clang++
-
-      - name: Configure ccache
-        run: |
-          ccache --clear
-          ccache --set-config=max_size=8G
-          ccache --set-config=compression=true
-          ccache --set-config=compression_level=6
-          ccache -s
 
       - name: Restore ccache
         uses: actions/cache@v3
-        id: restore-ccache
         with:
           path: /home/runner/.ccache
-          key: ccache-${{ runner.os }}-${{ hashFiles('kernel_workspace/kernel_platform/common/build.config.gki', 'kernel_workspace/kernel_platform/common/Makefile') }}
+          key: ccache-${{ runner.os }}-${{ github.ref }}
           restore-keys: |
             ccache-${{ runner.os }}-
 
@@ -248,6 +239,16 @@ jobs:
           echo "CONFIG_CRYPTO_LZ4KD=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_CRYPTO_842=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_LOCALVERSION_AUTO=n" >> ./common/arch/arm64/configs/gki_defconfig
+
+          # Add BBR
+          echo "CONFIG_TCP_CONG_ADVANCED=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_TCP_CONG_BBR=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_NET_SCH_FQ=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_TCP_CONG_BIC=n" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_TCP_CONG_CUBIC=n" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_TCP_CONG_WESTWOOD=n" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_TCP_CONG_HTCP=n" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_DEFAULT_TCP_CONG=bbr" >> ./common/arch/arm64/configs/gki_defconfig
           
           #Remove check_defconfig
           sudo sed -i 's/check_defconfig//' ./common/build.config.gki
@@ -282,42 +283,17 @@ jobs:
 
       - name: Build Kernel
         run: |
-          export PATH="/usr/lib/ccache:$PATH"
-          echo "=== CCACHE BEFORE BUILD ==="
-          ccache -s
-          
           export KBUILD_BUILD_TIMESTAMP="${{ github.event.inputs.KERNEL_TIME }}"
           export PATH="$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/prebuilts/clang/host/linux-x86/clang-r510928/bin:$PATH"
+          export PATH="/usr/lib/ccache:$PATH"
           sudo apt install libelf-dev
           cd kernel_workspace/kernel_platform/common
-          
-          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
-            CC="ccache clang" \
-            RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
-            PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
-            LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-O2 gki_defconfig
-            
-          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
-            CC="ccache clang" \
-            RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
-            PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
-            LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-O2 Image
-          
-          echo "=== CCACHE AFTER BUILD ==="
-          ccache -s
-          echo "Cache hit rate: $(ccache -s | grep 'cache hit rate')"
-
-      - name: Save ccache
-        if: always()
-        uses: actions/cache@v3
-        with:
-          path: /home/runner/.ccache
-          key: ${{ steps.restore-ccache.outputs.cache-primary-key }}
+          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole LD=ld.lld  HOSTLD=ld.lld O=out KCFLAGS+=-O2 gki_defconfig all
           
       - name: Apply Linux Patch
         run: |
          cd kernel_workspace/kernel_platform/common/out/arch/arm64/boot
-         curl -LO https://github.com/SukiSU-Ultra/SukiSU_KernelPatch_patch/releases/download/0.11-beta/patch_linux
+         curl -LO https://github.com/SukiSU-Ultra/SukiSU_KernelPatch_patch/releases/download/0.12.0/patch_linux
          chmod +x patch_linux
          ./patch_linux
          rm -f Image

@@ -209,84 +209,27 @@ patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || info "SUSFS补丁应用�
 cp "$KERNEL_WORKSPACE/SukiSU_patch/hooks/syscall_hooks.patch" ./ || error "复制syscall_hooks.patch失败"
 patch -p1 -F 3 < syscall_hooks.patch || info "syscall_hooks补丁应用可能有警告"
 
-# 应用HMBird GKI补丁
-info "应用HMBird GKI补丁..."
+info "开始应用HMBird GKI补丁..."
 cd drivers || error "进入drivers目录失败"
-cat << 'EOF' > hmbird_patch.c
-#include <linux/init.h>
-#include <linux/module.h>
-#include <linux/of.h>
-#include <linux/slab.h>
-#include <linux/string.h>
-
-static int __init hmbird_patch_init(void)
-{
-    struct device_node *ver_np;
-    const char *type;
-    int ret;
-
-    ver_np = of_find_node_by_path("/soc/oplus,hmbird/version_type");
-    if (!ver_np) {
-         pr_info("hmbird_patch: version_type node not found\n");
-         return 0;
-    }
-
-    ret = of_property_read_string(ver_np, "type", &type);
-    if (ret) {
-         pr_info("hmbird_patch: type property not found\n");
-         of_node_put(ver_np);
-         return 0;
-    }
-
-    if (strcmp(type, "HMBIRD_OGKI")) {
-         of_node_put(ver_np);
-         return 0;
-    }
-
-    struct property *prop = of_find_property(ver_np, "type", NULL);
-    if (prop) {
-         struct property *new_prop = kmalloc(sizeof(*prop), GFP_KERNEL);
-         if (!new_prop) {
-              pr_info("hmbird_patch: kmalloc for new_prop failed\n");
-              of_node_put(ver_np);
-              return 0;
-         }
-         memcpy(new_prop, prop, sizeof(*prop));
-         new_prop->value = kmalloc(strlen("HMBIRD_GKI") + 1, GFP_KERNEL);
-         if (!new_prop->value) {
-              pr_info("hmbird_patch: kmalloc for new_prop->value failed\n");
-              kfree(new_prop);
-              of_node_put(ver_np);
-              return 0;
-         }
-         strcpy(new_prop->value, "HMBIRD_GKI");
-         new_prop->length = strlen("HMBIRD_GKI") + 1;
-
-         if (of_remove_property(ver_np, prop) != 0) {
-              pr_info("hmbird_patch: of_remove_property failed\n");
-              return 0;
-         }
-         if (of_add_property(ver_np, new_prop) !=0) {
-              pr_info("hmbird_patch: of_add_property failed\n");
-              return 0;
-         }
-         pr_info("hmbird_patch: success from HMBIRD_OGKI to HMBIRD_GKI\n");
-    }
-    else {
-         pr_info("hmbird_patch: type property structure not found\n");
-    }
-    of_node_put(ver_np);
-    return 0;
-}
-early_initcall(hmbird_patch_init);
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("reigadegr");
-MODULE_DESCRIPTION("Forcefully convert HMBIRD_OGKI to HMBIRD_GKI.");
-EOF
-
-if ! grep -q "hmbird_patch.o" Makefile; then
-    echo "obj-y += hmbird_patch.o" >> Makefile
+# 下载补丁文件
+local patch_url="https://raw.githubusercontent.com/showdo/build_oneplus_sm8750/main/hmbird_patch.c"
+info "从GitHub下载补丁文件..."
+if ! curl -sSLo hmbird_patch.c "$patch_url"; then
+    error "补丁下载失败，请检查网络..."
 fi
+
+# 验证文件内容
+if ! grep -q "MODULE_DESCRIPTION" hmbird_patch.c; then
+    error "下载的文件不完整或格式不正确"
+fi
+
+# 更新Makefile
+info "更新Makefile配置..."
+if ! grep -q "hmbird_patch.o" Makefile; then
+    echo "obj-y += hmbird_patch.o" >> Makefile || error "写入Makefile失败"
+fi
+
+info "HMBird补丁应用成功！"
 
 # 返回common目录
 cd .. || error "返回common目录失败"
@@ -324,7 +267,7 @@ CONFIG_CRYPTO_LZ4HC=y
 CONFIG_CRYPTO_LZ4K=y
 CONFIG_CRYPTO_LZ4KD=y
 CONFIG_CRYPTO_842=y
-# Add BBR
+# BBR
 CONFIG_TCP_CONG_ADVANCED=y
 CONFIG_TCP_CONG_BBR=y
 CONFIG_NET_SCH_FQ=y
@@ -417,5 +360,5 @@ info "内核包路径: C:/Kernel_Build/${DEVICE_NAME}/AnyKernel3_${KSU_VERSION}_
 info "Image路径: C:/Kernel_Build/${DEVICE_NAME}/Image"
 info "请在C盘目录中查找内核包和Image文件。"
 info "清理本次构建的所有文件..."
-sudo rm -rf "$WORKSPACE" || info "无法删除工作目录，可能未创建"
+sudo rm -rf "$WORKSPACE" || error "无法删除工作目录，可能未创建"
 info "清理完成！下次运行脚本将重新拉取源码并构建内核。"

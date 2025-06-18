@@ -25,6 +25,10 @@ on:
        required: false
        default: true
        type: boolean
+      parent_run_id:
+        description: "父工作流ID"
+        required: false
+        default: ''
 
 jobs:
   build:
@@ -346,5 +350,5 @@ jobs:
       - name: Upload AnyKernel3
         uses: actions/upload-artifact@v4
         with:
-         name: AnyKernl3_${{ env.KSUVER }}_oneplus_13t_SuKiSu
+         name: AnyKernl3_${{ env.KSUVER }}_oneplus_13t_SuKiSu_${{ inputs.parent_run_id }}
          path: ./AnyKernel3/*

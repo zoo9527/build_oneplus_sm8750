@@ -5,7 +5,7 @@ on:
       KERNEL_SUFFIX:
         description: '内核名称修改(可改中文和emoji)'
         required: true
-        default: '-TG@Q1udaoyu'
+        default: '-TG@qdykernel'
       KERNEL_TIME:
        description: "内核构建日期更改(默认为原厂)"
        required: true
